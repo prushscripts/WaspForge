@@ -7,3 +7,81 @@
   {$I WaspForge/core/types.simba}
 {$ENDIF}
 
+function WFStateSanitizeName(scriptName: String): String;
+var
+  i: Integer;
+  ch: Char;
+  nextUpper: Boolean;
+begin
+  scriptName := scriptName.Trim();
+  nextUpper := True;
+
+  for i := 1 to Length(scriptName) do
+  begin
+    ch := scriptName[i];
+
+    if ch.IsNumeric or ch.IsAlphabetic then
+    begin
+      if nextUpper then
+        Result += UpperCase(ch)
+      else
+        Result += LowerCase(ch);
+      nextUpper := False;
+    end
+    else
+      nextUpper := True;
+  end;
+
+  if Result = '' then
+    Result := 'Generated';
+end;
+
+function WFStateContains(stateNames: TStringArray; stateName: String): Boolean;
+var
+  s: String;
+begin
+  for s in stateNames do
+    if s = stateName then
+      Exit(True);
+end;
+
+function BuildStateEnum(actions: TForgeActionArray; scriptName: String): String;
+var
+  enumTypeName: String;
+  stateNames: TStringArray;
+  action: TForgeAction;
+  stateName: String;
+  i: Integer;
+begin
+  enumTypeName := 'E' + WFStateSanitizeName(scriptName) + 'State';
+
+  stateNames := ['LOGIN', 'LEVEL_UP'];
+
+  for action in actions do
+  begin
+    if not action.Enabled then
+      Continue;
+
+    stateName := UpperCase(action.CatalogID.Trim());
+    if (stateName = '') or WFStateContains(stateNames, stateName) then
+      Continue;
+    stateNames += stateName;
+  end;
+
+  if not WFStateContains(stateNames, 'END_SCRIPT') then
+    stateNames += 'END_SCRIPT';
+
+  Result := 'type' + LINE_SEP;
+  Result += '  ' + enumTypeName + ' = enum(' + LINE_SEP;
+
+  for i := 0 to High(stateNames) do
+  begin
+    Result += '    ' + stateNames[i];
+    if i < High(stateNames) then
+      Result += ',';
+    Result += LINE_SEP;
+  end;
+
+  Result += '  );';
+end;
+

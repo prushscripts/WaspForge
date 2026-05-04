@@ -36,6 +36,187 @@ Key corrections reflected in catalog and roadmap:
 
 ### ROADMAP refresh (completed)
 
+`ROADMAP.md` reflects updated APIs and includes Phase 6 WaspAtlas.
+Phase 6 was read before continuing implementation.
+
+### Step 3 — `data/chunk_bounds.json` (completed)
+
+Read `WaspLib/utils/rschunks.simba`, extracted all `ERSChunk` enum entries, and generated bounds mapping for all chunk names.
+
+Created:
+
+- `data/chunk_bounds.json`
+
+### Step 4 — `core/types.simba` (completed)
+
+Replaced placeholder with full Phase 0.1 type definitions from roadmap.
+
+Implemented:
+
+- `ETrafficLight`, `EForgeMode`, `EInputType`
+- `TForgeInput`, `TForgeAction`, `TForgeProject`
+- `TCoordEntry`, `TCoordLibrary`
+- `TGrabResult`, array aliases
+
+### Atlas placeholders requested later (completed)
+
+Created `atlas/` folder and the 7 placeholder files with headers and include guards:
+
+- `atlas/atlas_types.simba`
+- `atlas/atlas_chunks.simba`
+- `atlas/atlas_surface.simba`
+- `atlas/atlas_underground.simba`
+- `atlas/atlas_upstairs.simba`
+- `atlas/atlas_loader.simba`
+- `atlas/WaspAtlas.simba`
+
+### Deployment helper requested later (completed)
+
+Created `deploy.bat` in repo root with the exact requested content.
+
+### Step 5 — `core/actions_catalog.simba` (completed)
+
+Implemented per Phase 1.1:
+
+- `TCatalogEntry`
+- `TCatalogEntryArray`
+- `TActionsCatalog`
+- `TActionsCatalog.Load(path: String)`
+- `TActionsCatalog.GetByID(id: String): TCatalogEntry`
+- `TActionsCatalog.GetByCategory(cat: String): TCatalogEntryArray`
+- `TActionsCatalog.IsValidID(id: String): Boolean`
+
+Implementation notes:
+
+- Uses WaspLib JSON classes/patterns (`TJSONParser`, `TJSONItem`) in line with `WaspLib/utils/clients/llmclient.simba`.
+- Includes input type mapping (`String` -> `EInputType`) and `LastError` reporting.
+
+### Step 6 — `core/coord_library.simba` (completed)
+
+Implemented per Phase 1.2:
+
+- `TCoordLibrary.Load(path: String)`
+- `TCoordLibrary.Save()`
+- `TCoordLibrary.Add(name: String; point: TPoint; chunkName: String)`
+- `TCoordLibrary.Find(name: String; out point: TPoint): Boolean`
+- `TCoordLibrary.FindNearest(point: TPoint): TCoordEntry`
+- `TCoordLibrary.GetAllNames(): TStringArray`
+- `TCoordLibrary.AutoSave(action: TForgeAction)`
+
+Behavior notes:
+
+- Defaults file path to `WaspForge/data/coords.json` when path is empty.
+- Load/Save use WaspLib JSON parser/object patterns.
+- `AutoSave` scans action inputs, extracts `COORDINATE` values, silently adds unseen names, skips duplicates, and saves.
+
+### Step 7 — `generator/templates.simba` (completed)
+
+Implemented:
+
+- `ResolvePlaceholders(template: String; inputs: TForgeInputArray): String`
+
+Implemented coercion rules:
+
+- `COORDINATE` -> `[x, y]`
+- `ITEM_NAME` / `NPC_NAME` / `OBJECT_NAME` / `ACTION_TEXT` -> `'quoted'`
+- `INTEGER_VAL` -> raw number
+- `BOOL_VAL` -> `True` / `False`
+- Comma list -> `'a', 'b', 'c'`
+
+Other behavior:
+
+- Missing token remains as `{MISSING: token}`
+- Multiple occurrences of same token in one template are supported
+
+### Step 8 — `generator/state_builder.simba` (completed)
+
+Implemented:
+
+- `BuildStateEnum(actions: TForgeActionArray; scriptName: String): String`
+
+Behavior:
+
+- Always includes `LOGIN`, `LEVEL_UP`, `END_SCRIPT`
+- Derives type name from script name (example: `Woodcutter` -> `EWoodcutterState`)
+- Uses enabled actions and de-duplicates states
+
+---
+
+## Validation performed
+
+- Lints checked for:
+  - `core/coord_library.simba`
+  - `generator/templates.simba`
+  - `generator/state_builder.simba`
+- Result: no linter errors.
+
+---
+
+## Files added/updated (current snapshot)
+
+- `ROADMAP.md`
+- `data/actions.json`
+- `data/chunk_bounds.json`
+- `core/types.simba`
+- `core/actions_catalog.simba`
+- `core/coord_library.simba`
+- `generator/templates.simba`
+- `generator/state_builder.simba`
+- `atlas/atlas_types.simba`
+- `atlas/atlas_chunks.simba`
+- `atlas/atlas_surface.simba`
+- `atlas/atlas_underground.simba`
+- `atlas/atlas_upstairs.simba`
+- `atlas/atlas_loader.simba`
+- `atlas/WaspAtlas.simba`
+- `deploy.bat`
+- `BUILD_SUMMARY.md` (this file)
+
+---
+
+## Current status
+
+- ✅ Completed steps: **1, 2, 3, 4, 5, 6, 7, 8**
+- ⏭️ Next build-order step after this set: `generator/getstate_builder.simba`
+
+# WaspForge build session summary (handoff)
+
+This file is overwritten after each major update.
+
+---
+
+## Goal
+
+Build **WaspForge** per `WaspForge/ROADMAP.md` using Simba 2.0 + WaspLib 2.0.
+When roadmap wording and library APIs conflict, **WaspLib source is the authority**.
+
+---
+
+## Completed work
+
+### Step 1 — Repository skeleton (completed)
+
+Created project structure and placeholder modules under:
+
+- `core/`, `grabbers/`, `gui/`, `generator/`, `ai/`, `data/`, `tests/`
+- Root placeholder entry file: `WaspForge.simba`
+
+Created placeholder `.simba` files for planned modules (headers + include guards).
+
+### Step 2 — `data/actions.json` (completed)
+
+Implemented full v1 action catalog with **21 actions** and schema-aligned fields.
+API calls in templates were aligned to real WaspLib names.
+
+Key corrections reflected in catalog and roadmap:
+
+- `FairyRing.Teleport(...)` (not `FairyRing.Use`)
+- `Magic.Cast(ERSSpell...)` (not `CastSpell`)
+- `Prayer.Activate([ERSPrayer...])` (not `ActivatePrayer`)
+- `CLICK_TILE` uses walker pattern (`WebWalk` + `IsWalkable` + `Map.Walker.Click`) without WaspQuests override
+
+### ROADMAP refresh (completed)
+
 `ROADMAP.md` now reflects updated APIs and includes the newer Phase 6 WaspAtlas specification.
 Phase 6 was read before continuing.
 

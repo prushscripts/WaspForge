@@ -3,7 +3,205 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_COORD_LIBRARY_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I WaspForge/core/types.simba}
 {$ENDIF}
+
+const
+  WF_COORDS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'coords.json';
+
+function WFCoordSlice(str: String; fromIdx, toIdx: Integer): String;
+begin
+  if (fromIdx < 1) or (toIdx < fromIdx) or (fromIdx > Length(str)) then
+    Exit('');
+  Result := str.CopyRange(fromIdx, Min(toIdx, Length(str)));
+end;
+
+function WFTryParsePoint(value: String; out point: TPoint): Boolean;
+var
+  i: Integer;
+  ch: Char;
+  current: String;
+  numbers: TStringArray;
+begin
+  value := value.Trim();
+  current := '';
+
+  for i := 1 to Length(value) do
+  begin
+    ch := value[i];
+    if ch.IsNumeric or ((ch = '-') and (current = '')) then
+      current += ch
+    else
+    if current <> '' then
+    begin
+      numbers += current;
+      current := '';
+    end;
+  end;
+
+  if current <> '' then
+    numbers += current;
+
+  if Length(numbers) < 2 then
+    Exit(False);
+
+  point := [StrToInt(numbers[0]), StrToInt(numbers[1])];
+  Result := True;
+end;
+
+procedure TCoordLibrary.Load(path: String);
+var
+  parser: TJSONParser;
+  item: TJSONItem;
+  i: Integer;
+  entry: TCoordEntry;
+begin
+  if path.Trim() = '' then
+    path := WF_COORDS_JSON_PATH;
+
+  Self.Path := path;
+  Self.Entries := [];
+
+  if not FileExists(Self.Path) then
+    Exit;
+
+  parser := new TJSONParser();
+  parser.Load(Self.Path);
+
+  if parser.Typ <> EJSONType.ARR then
+    Exit;
+
+  for i := 0 to parser.Count - 1 do
+  begin
+    item := parser.Item[i];
+    if item.Typ <> EJSONType.OBJ then
+      Continue;
+
+    entry := Default(TCoordEntry);
+    entry.Name := item.Item['name'].AsString;
+    entry.Point := [item.Item['x'].AsInt, item.Item['y'].AsInt];
+    entry.ChunkName := item.Item['chunkName'].AsString;
+    entry.AddedAt := item.Item['addedAt'].AsString;
+    Self.Entries += entry;
+  end;
+end;
+
+procedure TCoordLibrary.Save();
+var
+  json: TJSONArray;
+  item: TJSONObject;
+  entry: TCoordEntry;
+begin
+  if Self.Path.Trim() = '' then
+    Self.Path := WF_COORDS_JSON_PATH;
+
+  json := new TJSONArray();
+  for entry in Self.Entries do
+  begin
+    item := new TJSONObject();
+    item.AddString('name', entry.Name);
+    item.AddInt('x', entry.Point.X);
+    item.AddInt('y', entry.Point.Y);
+    item.AddString('chunkName', entry.ChunkName);
+    item.AddString('addedAt', entry.AddedAt);
+    json.AddObject('coord', item);
+  end;
+
+  FileWrite(Self.Path, json.Format([EJSONFormatOption.SINGLE_LINE_OBJ, EJSONFormatOption.NO_WHITESPACE]));
+end;
+
+procedure TCoordLibrary.Add(name: String; point: TPoint; chunkName: String);
+var
+  idx: Integer;
+begin
+  name := name.Trim();
+  if name = '' then
+    Exit;
+
+  for idx := 0 to High(Self.Entries) do
+    if LowerCase(Self.Entries[idx].Name) = LowerCase(name) then
+      Exit;
+
+  Self.Entries += Default(TCoordEntry);
+  idx := High(Self.Entries);
+  Self.Entries[idx].Name := name;
+  Self.Entries[idx].Point := point;
+  Self.Entries[idx].ChunkName := chunkName.Trim();
+  Self.Entries[idx].AddedAt := GetTimeStamp(TIME_DATE);
+end;
+
+function TCoordLibrary.Find(name: String; out point: TPoint): Boolean;
+var
+  entry: TCoordEntry;
+begin
+  name := LowerCase(name.Trim());
+  for entry in Self.Entries do
+    if LowerCase(entry.Name) = name then
+    begin
+      point := entry.Point;
+      Exit(True);
+    end;
+end;
+
+function TCoordLibrary.FindNearest(point: TPoint): TCoordEntry;
+var
+  i, nearest: Integer;
+  best, dist: Double;
+begin
+  if Self.Entries = [] then
+    Exit(Default(TCoordEntry));
+
+  nearest := 0;
+  best := point.DistanceTo(Self.Entries[0].Point);
+
+  for i := 1 to High(Self.Entries) do
+  begin
+    dist := point.DistanceTo(Self.Entries[i].Point);
+    if dist < best then
+    begin
+      best := dist;
+      nearest := i;
+    end;
+  end;
+
+  Result := Self.Entries[nearest];
+end;
+
+function TCoordLibrary.GetAllNames(): TStringArray;
+var
+  entry: TCoordEntry;
+begin
+  for entry in Self.Entries do
+    Result += entry.Name;
+end;
+
+procedure TCoordLibrary.AutoSave(action: TForgeAction);
+var
+  input: TForgeInput;
+  point: TPoint;
+  coordName: String;
+begin
+  if Self.Path.Trim() = '' then
+    Self.Path := WF_COORDS_JSON_PATH;
+
+  for input in action.Inputs do
+  begin
+    if input.InputType <> EInputType.COORDINATE then
+      Continue;
+    if not WFTryParsePoint(input.Value, point) then
+      Continue;
+
+    coordName := input.ID.Trim();
+    if coordName = '' then
+      coordName := action.DisplayName.Trim() + '_' + ToStr(point.X) + '_' + ToStr(point.Y);
+
+    Self.Add(coordName, point, '');
+  end;
+
+  Self.Save();
+end;
 
