@@ -3,7 +3,180 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_LOOP_BUILDER_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I WaspForge/core/types.simba}
 {$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I WaspForge/core/actions_catalog.simba}
+{$ENDIF}
+{$IFNDEF WF_TEMPLATES_INCLUDED}
+  {$I WaspForge/generator/templates.simba}
+{$ENDIF}
+
+const
+  WF_ACTIONS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'actions.json';
+
+function WFLoopSanitizeScriptName(scriptName: String): String;
+var
+  i: Integer;
+  ch: Char;
+  nextUpper: Boolean;
+begin
+  scriptName := scriptName.Trim();
+  nextUpper := True;
+
+  for i := 1 to Length(scriptName) do
+  begin
+    ch := scriptName[i];
+    if ch.IsNumeric or ch.IsAlphabetic then
+    begin
+      if nextUpper then
+        Result += UpperCase(ch)
+      else
+        Result += LowerCase(ch);
+      nextUpper := False;
+    end
+    else
+      nextUpper := True;
+  end;
+
+  if Result = '' then
+    Result := 'Generated';
+end;
+
+function WFLoopProcSuffix(actionId: String): String;
+var
+  parts: TStringArray;
+  i: Integer;
+  part: String;
+begin
+  parts := UpperCase(actionId.Trim()).Split('_');
+  for i := 0 to High(parts) do
+  begin
+    part := LowerCase(parts[i]).Trim();
+    if part = '' then
+      Continue;
+    Result += UpperCase(part[1]) + part.CopyRange(2, Length(part));
+  end;
+end;
+
+function WFLoopHasState(arms: TStringArray; needle: String): Boolean;
+var
+  arm: String;
+begin
+  for arm in arms do
+    if arm = needle then
+      Exit(True);
+end;
+
+function BuildLoopRun(actions: TForgeActionArray; scriptName: String): String;
+var
+  enumTypeName: String;
+  action: TForgeAction;
+  stateName, procName: String;
+  arms: TStringArray;
+  i: Integer;
+begin
+  enumTypeName := 'E' + WFLoopSanitizeScriptName(scriptName) + 'State';
+
+  arms := [
+    '      ' + enumTypeName + '.LOGIN: Login.DoLogin();',
+    '      ' + enumTypeName + '.LEVEL_UP: Chat.HandleLevelUp();'
+  ];
+
+  for action in actions do
+  begin
+    if not action.Enabled then
+      Continue;
+    stateName := UpperCase(action.CatalogID.Trim());
+    procName := 'Do' + WFLoopProcSuffix(action.CatalogID);
+    if (stateName = '') or WFLoopHasState(arms, '      ' + enumTypeName + '.' + stateName + ': Self.' + procName + '();') then
+      Continue;
+    arms += '      ' + enumTypeName + '.' + stateName + ': Self.' + procName + '();';
+  end;
+
+  arms += '      ' + enumTypeName + '.END_SCRIPT: Break;';
+
+  Result := 'procedure TScript.Run();' + LINE_SEP;
+  Result += 'var' + LINE_SEP;
+  Result += '  state: ' + enumTypeName + ';' + LINE_SEP;
+  Result += 'begin' + LINE_SEP;
+  Result += '  Self.Init();' + LINE_SEP;
+  Result += '  repeat' + LINE_SEP;
+  Result += '    state := Self.GetState();' + LINE_SEP;
+  Result += '    Logger.Debug(ToStr(state));' + LINE_SEP;
+  Result += '    ProgressReport.Print();' + LINE_SEP;
+  Result += '    WaspClient.SubmitStats();' + LINE_SEP;
+  Result += '    case state of' + LINE_SEP;
+  for i := 0 to High(arms) do
+    Result += arms[i] + LINE_SEP;
+  Result += '    end;' + LINE_SEP;
+  Result += '    Antiban.DoAntiban();' + LINE_SEP;
+  Result += '  until False;' + LINE_SEP;
+  Result += 'end;';
+end;
+
+function BuildQuestSolve(actions: TForgeActionArray; questName: String): String;
+var
+  catalog: TActionsCatalog;
+  action: TForgeAction;
+  entry: TCatalogEntry;
+  terminalCondition, stepTitle, procName: String;
+  idx: Integer;
+begin
+  catalog.Load(WF_ACTIONS_JSON_PATH);
+
+  Result := 'procedure TScript.Solve();' + LINE_SEP;
+  Result += 'var' + LINE_SEP;
+  Result += '  tries: Integer;' + LINE_SEP;
+  Result += 'begin' + LINE_SEP;
+  Result += '  for Self.Index := 0 to High(Self.Steps) do' + LINE_SEP;
+  Result += '  begin' + LINE_SEP;
+  Result += '    Logger.Info(''Step '' + ToStr(Self.Index + 1) + '': '' + Self.Steps[Self.Index].Name);' + LINE_SEP;
+  Result += '    for tries := 1 to 5 do' + LINE_SEP;
+  Result += '    begin' + LINE_SEP;
+  Result += '      case Self.Index of' + LINE_SEP;
+
+  idx := 0;
+  for action in actions do
+  begin
+    if not action.Enabled then
+      Continue;
+
+    procName := 'Do' + WFLoopProcSuffix(action.CatalogID);
+    stepTitle := action.DisplayName.Trim();
+    if stepTitle = '' then
+      stepTitle := action.CatalogID;
+
+    if catalog.IsValidID(action.CatalogID) then
+    begin
+      entry := catalog.GetByID(action.CatalogID);
+      if entry.TerminalCondition.Trim() <> '' then
+        terminalCondition := ResolvePlaceholders(entry.TerminalCondition, action.Inputs)
+      else
+        terminalCondition := 'True';
+    end
+    else
+      terminalCondition := 'True';
+
+    Result += '        ' + ToStr(idx) + ': begin' + LINE_SEP;
+    Result += '          Self.Steps[Self.Index].Name := ''' + stepTitle.Replace('''', '''''') + ''';' + LINE_SEP;
+    Result += '          Self.' + procName + '();' + LINE_SEP;
+    Result += '          if ' + terminalCondition + ' then Break;' + LINE_SEP;
+    Result += '        end;' + LINE_SEP;
+
+    Inc(idx);
+  end;
+
+  Result += '      end;' + LINE_SEP;
+  Result += '      if tries = 5 then' + LINE_SEP;
+  Result += '        TerminateScript(''Step failed: '' + Self.Steps[Self.Index].Name);' + LINE_SEP;
+  Result += '    end;' + LINE_SEP;
+  Result += '    Wait(RandomMode(800, 400, 1200));' + LINE_SEP;
+  Result += '  end;' + LINE_SEP;
+  Result += 'end;';
+end;
 

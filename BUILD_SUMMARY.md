@@ -4,6 +4,134 @@ This file is overwritten after each major update.
 
 ---
 
+## Current progress
+
+Completed steps: **1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13**
+
+---
+
+## Newly completed in this update
+
+### Step 9 — `generator/getstate_builder.simba`
+
+Implemented:
+
+- `BuildGetState(actions: TForgeActionArray; scriptName: String): String`
+
+Behavior:
+
+- Hardcoded priority checks emitted first:
+  1. `Activity.IsFinished` -> `END_SCRIPT`
+  2. `not RSClient.IsLoggedIn()` -> `LOGIN`
+  3. `Chat.LeveledUp()` -> `LEVEL_UP`
+  4. `Bank.IsOpen()` -> `OPEN_BANK` only when `OPEN_BANK` action exists
+  5. `Make.IsOpen()` -> `SELECT_MAKE_ALL` only when that action exists
+- Then emits user action checks in order using catalog `getStateCondition`
+  resolved via `ResolvePlaceholders(...)`.
+- Last enabled action is emitted as unconditional fallback state.
+
+### Step 10 — `generator/init_builder.simba`
+
+Implemented:
+
+- `BuildInit(project: TForgeProject): String`
+
+Emits:
+
+- `Logger.Setup(...)`
+- `ProgressReport.Setup(...)` with basic labels
+- `Map.Setup([...])` from `project.MapChunks`
+  - Falls back to `Map.Setup([ERSChunk.LUMBRIDGE]); // UPDATE ME` when empty
+- `Antiban.AddBreak(...)` only when `BreakInterval > 0`
+- `Antiban.AddSleep(...)` only when `SleepTime` is non-empty
+- `CollectionBox.Setup()`
+- `Self.StartXP := XPBar.TotalEarnedXP(True);`
+
+### Step 11 — `generator/loop_builder.simba`
+
+Implemented:
+
+- `BuildLoopRun(actions: TForgeActionArray; scriptName: String): String`
+- `BuildQuestSolve(actions: TForgeActionArray; questName: String): String`
+
+`BuildLoopRun` emits:
+
+- `Self.Init()`
+- repeat/until False loop
+- state polling/logging/reporting/stats
+- case arms for LOGIN, LEVEL_UP, action states, END_SCRIPT
+- `Antiban.DoAntiban()` at loop bottom
+
+`BuildQuestSolve` emits:
+
+- Sequential `Solve()` loop by `Self.Index`
+- Per-step logging and action execution
+- Terminal-condition checks from catalog with placeholder resolution
+- Retry loop up to 5 attempts
+- `TerminateScript('Step failed: ...')` on repeated failure
+- `Wait(RandomMode(800, 400, 1200))` between steps
+
+### Step 12 — `core/code_generator.simba`
+
+Implemented:
+
+- `TCodeGenerator` type and `TCodeGenerator.Generate(project: TForgeProject): String`
+
+Assembler output order:
+
+1. `{$I WaspLib/osrs.simba}`
+2. Header comment with script name + timestamp
+3. Named coordinate constants for grabbed coordinates
+4. EState enum from `BuildStateEnum`
+5. `TScript` record declaration (unique input fields + `StartXP`)
+6. `DoXxx()` procedures resolved from catalog templates
+7. `GetState()` via `BuildGetState`
+8. `Init()` via `BuildInit`
+9. `Run()` via `BuildLoopRun`
+10. Program entry (`var Script: TScript; ... Script.Run();`)
+
+### Step 13 — `core/project_file.simba`
+
+Implemented:
+
+- `TForgeProject.Save(path: String)`
+- `TForgeProject.Load(path: String): Boolean`
+- `TForgeProject.ToJSON(): String`
+- `TForgeProject.FromJSON(json: String): Boolean`
+
+JSON patterns follow WaspLib parser/object style used elsewhere.
+Includes enum/string conversion helpers for mode, input types, traffic-light.
+
+---
+
+## Files touched in this update
+
+- `generator/getstate_builder.simba`
+- `generator/init_builder.simba`
+- `generator/loop_builder.simba`
+- `core/code_generator.simba`
+- `core/project_file.simba`
+- `BUILD_SUMMARY.md` (this file)
+
+---
+
+## Validation
+
+Lints checked for all 5 implementation files; no linter errors reported.
+
+---
+
+## Next recommended step
+
+Continue strict order with the next roadmap milestone after Step 13
+(tests and remaining generator/core integration flow).
+
+# WaspForge build session summary (handoff)
+
+This file is overwritten after each major update.
+
+---
+
 ## Goal
 
 Build **WaspForge** per `WaspForge/ROADMAP.md` using Simba 2.0 + WaspLib 2.0.

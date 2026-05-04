@@ -3,7 +3,230 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_PROJECT_FILE_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I WaspForge/core/types.simba}
 {$ENDIF}
 
+function WFModeToString(mode: EForgeMode): String;
+begin
+  case mode of
+    EForgeMode.LOOP_SCRIPT: Result := 'LOOP_SCRIPT';
+    EForgeMode.SEQUENTIAL_QUEST: Result := 'SEQUENTIAL_QUEST';
+  end;
+end;
+
+function WFTryParseMode(value: String; out mode: EForgeMode): Boolean;
+begin
+  case UpperCase(value.Trim()) of
+    'LOOP_SCRIPT': mode := EForgeMode.LOOP_SCRIPT;
+    'SEQUENTIAL_QUEST': mode := EForgeMode.SEQUENTIAL_QUEST;
+  else
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+function WFInputTypeToString(inputType: EInputType): String;
+begin
+  case inputType of
+    EInputType.COORDINATE: Result := 'COORDINATE';
+    EInputType.ITEM_NAME: Result := 'ITEM_NAME';
+    EInputType.NPC_NAME: Result := 'NPC_NAME';
+    EInputType.OBJECT_NAME: Result := 'OBJECT_NAME';
+    EInputType.ACTION_TEXT: Result := 'ACTION_TEXT';
+    EInputType.INTEGER_VAL: Result := 'INTEGER_VAL';
+    EInputType.BOOL_VAL: Result := 'BOOL_VAL';
+    EInputType.PRAYER_SELECT: Result := 'PRAYER_SELECT';
+    EInputType.SPELL_SELECT: Result := 'SPELL_SELECT';
+    EInputType.CHUNK_SELECT: Result := 'CHUNK_SELECT';
+  end;
+end;
+
+function WFTryParseInputType(value: String; out inputType: EInputType): Boolean;
+begin
+  case UpperCase(value.Trim()) of
+    'COORDINATE': inputType := EInputType.COORDINATE;
+    'ITEM_NAME': inputType := EInputType.ITEM_NAME;
+    'NPC_NAME': inputType := EInputType.NPC_NAME;
+    'OBJECT_NAME': inputType := EInputType.OBJECT_NAME;
+    'ACTION_TEXT': inputType := EInputType.ACTION_TEXT;
+    'INTEGER_VAL': inputType := EInputType.INTEGER_VAL;
+    'BOOL_VAL': inputType := EInputType.BOOL_VAL;
+    'PRAYER_SELECT': inputType := EInputType.PRAYER_SELECT;
+    'SPELL_SELECT': inputType := EInputType.SPELL_SELECT;
+    'CHUNK_SELECT': inputType := EInputType.CHUNK_SELECT;
+  else
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+function WFTrafficToString(value: ETrafficLight): String;
+begin
+  case value of
+    ETrafficLight.RED: Result := 'RED';
+    ETrafficLight.YELLOW: Result := 'YELLOW';
+    ETrafficLight.GREEN: Result := 'GREEN';
+  end;
+end;
+
+function WFTryParseTraffic(value: String; out traffic: ETrafficLight): Boolean;
+begin
+  case UpperCase(value.Trim()) of
+    'RED': traffic := ETrafficLight.RED;
+    'YELLOW': traffic := ETrafficLight.YELLOW;
+    'GREEN': traffic := ETrafficLight.GREEN;
+  else
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+function TForgeProject.ToJSON(): String;
+var
+  root: TJSONObject;
+  actionsJson, inputsJson, chunksJson: TJSONArray;
+  actionJson, inputJson: TJSONObject;
+  action: TForgeAction;
+  input: TForgeInput;
+  chunk: String;
+begin
+  root := new TJSONObject();
+  root.AddString('name', Self.Name);
+  root.AddString('mode', WFModeToString(Self.Mode));
+  root.AddString('questName', Self.QuestName);
+  root.AddInt('breakInterval', Self.BreakInterval);
+  root.AddInt('breakLength', Self.BreakLength);
+  root.AddString('sleepTime', Self.SleepTime);
+  root.AddString('aiApiKey', Self.AIAPIKey);
+
+  chunksJson := new TJSONArray();
+  for chunk in Self.MapChunks do
+    chunksJson.AddString('chunk', chunk);
+  root.AddArray('mapChunks', chunksJson);
+
+  actionsJson := new TJSONArray();
+  for action in Self.Actions do
+  begin
+    actionJson := new TJSONObject();
+    actionJson.AddString('instanceId', action.InstanceID);
+    actionJson.AddString('catalogId', action.CatalogID);
+    actionJson.AddString('displayName', action.DisplayName);
+    actionJson.AddString('category', action.Category);
+    actionJson.AddString('trafficLight', WFTrafficToString(action.TrafficLight));
+    actionJson.AddBool('enabled', action.Enabled);
+    actionJson.AddString('notes', action.Notes);
+
+    inputsJson := new TJSONArray();
+    for input in action.Inputs do
+    begin
+      inputJson := new TJSONObject();
+      inputJson.AddString('id', input.ID);
+      inputJson.AddString('label', input.Label_);
+      inputJson.AddString('inputType', WFInputTypeToString(input.InputType));
+      inputJson.AddString('value', input.Value);
+      inputJson.AddBool('isRequired', input.IsRequired);
+      inputJson.AddBool('isGrabbed', input.IsGrabbed);
+      inputJson.AddString('grabHint', input.GrabHint);
+      inputsJson.AddObject('input', inputJson);
+    end;
+    actionJson.AddArray('inputs', inputsJson);
+
+    actionsJson.AddObject('action', actionJson);
+  end;
+  root.AddArray('actions', actionsJson);
+
+  Result := root.Format([EJSONFormatOption.SINGLE_LINE_OBJ, EJSONFormatOption.NO_WHITESPACE]);
+end;
+
+function TForgeProject.FromJSON(json: String): Boolean;
+var
+  parser: TJSONParser;
+  actionItem, inputItem: TJSONItem;
+  i, j: Integer;
+  mode: EForgeMode;
+  traffic: ETrafficLight;
+  inputType: EInputType;
+  action: TForgeAction;
+  input: TForgeInput;
+begin
+  parser := new TJSONParser();
+  parser.Parse(json);
+  if parser.Typ <> EJSONType.OBJ then
+    Exit(False);
+
+  if not WFTryParseMode(parser.Item['mode'].AsString, mode) then
+    mode := EForgeMode.LOOP_SCRIPT;
+
+  Self.Name := parser.Item['name'].AsString;
+  Self.Mode := mode;
+  Self.QuestName := parser.Item['questName'].AsString;
+  Self.BreakInterval := parser.Item['breakInterval'].AsInt;
+  Self.BreakLength := parser.Item['breakLength'].AsInt;
+  Self.SleepTime := parser.Item['sleepTime'].AsString;
+  Self.AIAPIKey := parser.Item['aiApiKey'].AsString;
+
+  Self.MapChunks := [];
+  if parser.Has('mapChunks') then
+    for i := 0 to parser.Item['mapChunks'].Count - 1 do
+      Self.MapChunks += parser.Item['mapChunks'].Item[i].AsString;
+
+  Self.Actions := [];
+  if not parser.Has('actions') then
+    Exit(True);
+
+  SetLength(Self.Actions, parser.Item['actions'].Count);
+  for i := 0 to parser.Item['actions'].Count - 1 do
+  begin
+    actionItem := parser.Item['actions'].Item[i];
+    action := Default(TForgeAction);
+    action.InstanceID := actionItem.Item['instanceId'].AsString;
+    action.CatalogID := actionItem.Item['catalogId'].AsString;
+    action.DisplayName := actionItem.Item['displayName'].AsString;
+    action.Category := actionItem.Item['category'].AsString;
+    action.Enabled := actionItem.Item['enabled'].AsBool;
+    action.Notes := actionItem.Item['notes'].AsString;
+
+    if not WFTryParseTraffic(actionItem.Item['trafficLight'].AsString, traffic) then
+      traffic := ETrafficLight.RED;
+    action.TrafficLight := traffic;
+
+    SetLength(action.Inputs, actionItem.Item['inputs'].Count);
+    for j := 0 to actionItem.Item['inputs'].Count - 1 do
+    begin
+      inputItem := actionItem.Item['inputs'].Item[j];
+      input := Default(TForgeInput);
+      input.ID := inputItem.Item['id'].AsString;
+      input.Label_ := inputItem.Item['label'].AsString;
+      input.Value := inputItem.Item['value'].AsString;
+      input.IsRequired := inputItem.Item['isRequired'].AsBool;
+      input.IsGrabbed := inputItem.Item['isGrabbed'].AsBool;
+      input.GrabHint := inputItem.Item['grabHint'].AsString;
+
+      if not WFTryParseInputType(inputItem.Item['inputType'].AsString, inputType) then
+        inputType := EInputType.ACTION_TEXT;
+      input.InputType := inputType;
+
+      action.Inputs[j] := input;
+    end;
+
+    Self.Actions[i] := action;
+  end;
+
+  Result := True;
+end;
+
+procedure TForgeProject.Save(path: String);
+begin
+  FileWrite(path, Self.ToJSON());
+end;
+
+function TForgeProject.Load(path: String): Boolean;
+begin
+  if not FileExists(path) then
+    Exit(False);
+  Result := Self.FromJSON(FileRead(path));
+end;

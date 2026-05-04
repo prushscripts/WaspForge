@@ -3,7 +3,62 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_INIT_BUILDER_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I WaspForge/core/types.simba}
 {$ENDIF}
 
+function WFInitSanitizeScriptName(name: String): String;
+begin
+  Result := name.Trim();
+  if Result = '' then
+    Result := 'WaspForge Script';
+end;
+
+function WFInitChunkEnum(chunkName: String): String;
+begin
+  Result := 'ERSChunk.' + UpperCase(chunkName.Trim()).Replace(' ', '_');
+end;
+
+function BuildInit(project: TForgeProject): String;
+var
+  scriptName: String;
+  i: Integer;
+  chunkExpr: String;
+begin
+  scriptName := WFInitSanitizeScriptName(project.Name);
+
+  Result := 'procedure TScript.Init();' + LINE_SEP;
+  Result += 'begin' + LINE_SEP;
+  Result += '  Logger.Setup(''' + scriptName.Replace('''', '''''') + ''');' + LINE_SEP;
+  Result += '  ProgressReport.Setup(' + LINE_SEP;
+  Result += '    ''' + scriptName.Replace('''', '''''') + ''',' + LINE_SEP;
+  Result += '    [''Script runtime:'', ''Botting runtime:'', ''Total XP:'', ''XP/H:''],' + LINE_SEP;
+  Result += '    nil' + LINE_SEP;
+  Result += '  );' + LINE_SEP;
+
+  if Length(project.MapChunks) = 0 then
+    Result += '  Map.Setup([ERSChunk.LUMBRIDGE]); // UPDATE ME' + LINE_SEP
+  else
+  begin
+    for i := 0 to High(project.MapChunks) do
+    begin
+      if chunkExpr <> '' then
+        chunkExpr += ', ';
+      chunkExpr += WFInitChunkEnum(project.MapChunks[i]);
+    end;
+    Result += '  Map.Setup([' + chunkExpr + ']);' + LINE_SEP;
+  end;
+
+  if project.BreakInterval > 0 then
+    Result += '  Antiban.AddBreak(' + ToStr(project.BreakInterval) + ' * ONE_MINUTE, ' + ToStr(project.BreakLength) + ' * ONE_MINUTE, 0.2, 0.33);' + LINE_SEP;
+
+  if project.SleepTime.Trim() <> '' then
+    Result += '  Antiban.AddSleep(''' + project.SleepTime.Replace('''', '''''') + ''', 8 * ONE_HOUR, 0.1, 0.8);' + LINE_SEP;
+
+  Result += '  CollectionBox.Setup();' + LINE_SEP;
+  Result += '  Self.StartXP := XPBar.TotalEarnedXP(True);' + LINE_SEP;
+  Result += 'end;';
+end;

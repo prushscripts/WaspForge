@@ -3,7 +3,123 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_GETSTATE_BUILDER_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I WaspForge/core/types.simba}
 {$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I WaspForge/core/actions_catalog.simba}
+{$ENDIF}
+{$IFNDEF WF_TEMPLATES_INCLUDED}
+  {$I WaspForge/generator/templates.simba}
+{$ENDIF}
+
+const
+  WF_ACTIONS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'actions.json';
+
+function WFGetStateSanitizeName(scriptName: String): String;
+var
+  i: Integer;
+  ch: Char;
+  nextUpper: Boolean;
+begin
+  scriptName := scriptName.Trim();
+  nextUpper := True;
+
+  for i := 1 to Length(scriptName) do
+  begin
+    ch := scriptName[i];
+    if ch.IsNumeric or ch.IsAlphabetic then
+    begin
+      if nextUpper then
+        Result += UpperCase(ch)
+      else
+        Result += LowerCase(ch);
+      nextUpper := False;
+    end
+    else
+      nextUpper := True;
+  end;
+
+  if Result = '' then
+    Result := 'Generated';
+end;
+
+function WFGetStateAnyAction(actions: TForgeActionArray; actionId: String): Boolean;
+var
+  action: TForgeAction;
+begin
+  for action in actions do
+    if action.Enabled and (UpperCase(action.CatalogID) = UpperCase(actionId)) then
+      Exit(True);
+end;
+
+function BuildGetState(actions: TForgeActionArray; scriptName: String): String;
+var
+  enumTypeName: String;
+  catalog: TActionsCatalog;
+  action: TForgeAction;
+  entry: TCatalogEntry;
+  cond: String;
+  enabledIdx, enabledCount: Integer;
+  stateName: String;
+begin
+  enumTypeName := 'E' + WFGetStateSanitizeName(scriptName) + 'State';
+  catalog.Load(WF_ACTIONS_JSON_PATH);
+
+  for action in actions do
+    if action.Enabled then
+      Inc(enabledCount);
+
+  Result := 'function TScript.GetState(): ' + enumTypeName + ';' + LINE_SEP;
+  Result += 'begin' + LINE_SEP;
+  Result += '  if Activity.IsFinished then Exit(' + enumTypeName + '.END_SCRIPT);' + LINE_SEP;
+  Result += '  if not RSClient.IsLoggedIn() then Exit(' + enumTypeName + '.LOGIN);' + LINE_SEP;
+  Result += '  if Chat.LeveledUp() then Exit(' + enumTypeName + '.LEVEL_UP);' + LINE_SEP;
+
+  if WFGetStateAnyAction(actions, 'OPEN_BANK') then
+    Result += '  if Bank.IsOpen() then Exit(' + enumTypeName + '.OPEN_BANK);' + LINE_SEP;
+  if WFGetStateAnyAction(actions, 'SELECT_MAKE_ALL') then
+    Result += '  if Make.IsOpen() then Exit(' + enumTypeName + '.SELECT_MAKE_ALL);' + LINE_SEP;
+
+  enabledIdx := 0;
+  for action in actions do
+  begin
+    if not action.Enabled then
+      Continue;
+    Inc(enabledIdx);
+
+    stateName := UpperCase(action.CatalogID.Trim());
+    if catalog.IsValidID(action.CatalogID) then
+    begin
+      entry := catalog.GetByID(action.CatalogID);
+      if entry.StateEnumName.Trim() <> '' then
+        stateName := UpperCase(entry.StateEnumName.Trim());
+    end;
+
+    // Last enabled action is default fallback with no condition.
+    if enabledIdx = enabledCount then
+    begin
+      Result += '  Exit(' + enumTypeName + '.' + stateName + ');' + LINE_SEP;
+      Break;
+    end;
+
+    cond := '';
+    if catalog.IsValidID(action.CatalogID) then
+    begin
+      entry := catalog.GetByID(action.CatalogID);
+      cond := ResolvePlaceholders(entry.GetStateCondition, action.Inputs).Trim();
+    end;
+
+    if cond = '' then
+      cond := 'True';
+
+    Result += '  if ' + cond + ' then Exit(' + enumTypeName + '.' + stateName + ');' + LINE_SEP;
+  end;
+
+  Result += '  Exit(' + enumTypeName + '.END_SCRIPT);' + LINE_SEP;
+  Result += 'end;';
+end;
 
