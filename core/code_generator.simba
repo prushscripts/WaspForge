@@ -7,29 +7,29 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I types.simba}
+{$ENDIF}
+{$IFNDEF WF_PATHS_INCLUDED}
+  {$I paths.simba}
 {$ENDIF}
 {$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
-  {$I WaspForge/core/actions_catalog.simba}
+  {$I actions_catalog.simba}
 {$ENDIF}
 {$IFNDEF WF_TEMPLATES_INCLUDED}
-  {$I WaspForge/generator/templates.simba}
+  {$I ../generator/templates.simba}
 {$ENDIF}
 {$IFNDEF WF_STATE_BUILDER_INCLUDED}
-  {$I WaspForge/generator/state_builder.simba}
+  {$I ../generator/state_builder.simba}
 {$ENDIF}
 {$IFNDEF WF_GETSTATE_BUILDER_INCLUDED}
-  {$I WaspForge/generator/getstate_builder.simba}
+  {$I ../generator/getstate_builder.simba}
 {$ENDIF}
 {$IFNDEF WF_INIT_BUILDER_INCLUDED}
-  {$I WaspForge/generator/init_builder.simba}
+  {$I ../generator/init_builder.simba}
 {$ENDIF}
 {$IFNDEF WF_LOOP_BUILDER_INCLUDED}
-  {$I WaspForge/generator/loop_builder.simba}
+  {$I ../generator/loop_builder.simba}
 {$ENDIF}
-
-const
-  WF_ACTIONS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'actions.json';
 
 type
   TCodeGenerator = record
@@ -137,7 +137,7 @@ var
   constName, fieldName, resolved: String;
 begin
   Self.LastError := '';
-  Self.Catalog.Load(WF_ACTIONS_JSON_PATH);
+  Self.Catalog.Load(WF_DataPath('actions.json'));
   if Self.Catalog.LastError <> '' then
   begin
     Self.LastError := Self.Catalog.LastError;

@@ -7,11 +7,11 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I types.simba}
 {$ENDIF}
-
-const
-  WF_COORDS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'coords.json';
+{$IFNDEF WF_PATHS_INCLUDED}
+  {$I paths.simba}
+{$ENDIF}
 
 function WFCoordSlice(str: String; fromIdx, toIdx: Integer): String;
 begin
@@ -61,7 +61,7 @@ var
   entry: TCoordEntry;
 begin
   if path.Trim() = '' then
-    path := WF_COORDS_JSON_PATH;
+    path := WF_DataPath('coords.json');
 
   Self.Path := path;
   Self.Entries := [];
@@ -97,7 +97,7 @@ var
   entry: TCoordEntry;
 begin
   if Self.Path.Trim() = '' then
-    Self.Path := WF_COORDS_JSON_PATH;
+    Self.Path := WF_DataPath('coords.json');
 
   json := new TJSONArray();
   for entry in Self.Entries do
@@ -186,7 +186,7 @@ var
   coordName: String;
 begin
   if Self.Path.Trim() = '' then
-    Self.Path := WF_COORDS_JSON_PATH;
+    Self.Path := WF_DataPath('coords.json');
 
   for input in action.Inputs do
   begin

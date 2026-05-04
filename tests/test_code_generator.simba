@@ -7,10 +7,7 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 {$IFNDEF WF_CODE_GENERATOR_INCLUDED}
-  {$I WaspForge/core/code_generator.simba}
-{$ENDIF}
-{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
-  {$I WaspForge/core/actions_catalog.simba}
+  {$I ../core/code_generator.simba}
 {$ENDIF}
 
 function MakeInput(
@@ -168,7 +165,7 @@ var
   catalog: TActionsCatalog;
   generator: TCodeGenerator;
 begin
-  catalog.Load('WaspForge/data/actions.json');
+  catalog.Load(WF_DataPath('actions.json'));
   if catalog.LastError <> '' then
   begin
     WriteLn('Catalog load failed: ' + catalog.LastError);

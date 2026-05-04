@@ -170,7 +170,7 @@ type
     ChunkName:  String;
     UpText:     String;
     ActionText: String;
-    Colors:     TCTS2ColorArray;
+    Colors:     TColorArray;
     Distance:   Integer;
   end;
 

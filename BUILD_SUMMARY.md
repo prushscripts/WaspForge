@@ -11,6 +11,15 @@ Completed implementation steps: **1 through 14**
 - Steps 1–13: foundation and code generation engine completed.
 - Step 14: `tests/test_code_generator.simba` implemented (quality gate test harness).
 
+### Critical fix — Simba 2.0 color types (not a roadmap step)
+
+- **`core/types.simba`:** `TGrabResult.Colors` was incorrectly typed as `TCTS2ColorArray` (Simba 1.4 / SRL-T). It is now **`TColorArray`**, which is the Simba 2.0 built-in array of `TColor`.
+- **Banned-type audit (all `WaspForge/**/*.simba`):** searched for `TCTS2Color`, `TCTS2ColorArray`, `TCTS1Color`, `TCTS1ColorArray`, `TColorSettings`, `TSRL`, `TClient`, `TRSClient`, `FindColorTolerance`, and standalone `FindColor` in `.simba` sources. **Only `core/types.simba` contained a banned identifier** (`TCTS2ColorArray`); no other `.simba` files matched.
+- **`ROADMAP.md`:** Phase 0.1 snippet for `TGrabResult.Colors` updated from `TCTS2ColorArray` to `TColorArray` so it matches the implementation.
+- **`data/actions.json`:** The `LOOT_ITEM` template line uses **`Target.FindColor(...)`** — that is the **WaspLib 2.0 / Simba 2.0** method on the `Target` image helper, not the legacy global `FindColor` API; it was left as-is.
+
+**Manual check:** Run `tests/test_code_generator.simba` in Simba 2.0 and confirm the `TCTS2ColorArray` compile error is gone.
+
 ---
 
 ## What was completed in this update
@@ -48,6 +57,8 @@ The script now:
 
 - `tests/test_code_generator.simba` (implemented)
 - `BUILD_SUMMARY.md` (overwritten)
+- `core/types.simba` (`TGrabResult.Colors`: `TCTS2ColorArray` → `TColorArray`)
+- `ROADMAP.md` (Phase 0.1 `TGrabResult` snippet aligned with Simba 2.0)
 
 ---
 

@@ -4,7 +4,7 @@
 *)
 {$DEFINE WF_TEMPLATES_INCLUDED}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I ../core/types.simba}
 {$ENDIF}
 
 function WFTemplateSlice(str: String; fromIdx, toIdx: Integer): String;

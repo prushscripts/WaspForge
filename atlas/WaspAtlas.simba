@@ -4,6 +4,6 @@
 *)
 {$DEFINE WF_ATLAS_INCLUDED}
 {$IFNDEF WF_ATLAS_LOADER_INCLUDED}
-  {$I WaspForge/atlas/atlas_loader.simba}
+  {$I atlas_loader.simba}
 {$ENDIF}
 

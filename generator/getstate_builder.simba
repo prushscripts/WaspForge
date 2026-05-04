@@ -7,17 +7,17 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I ../core/types.simba}
 {$ENDIF}
 {$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
-  {$I WaspForge/core/actions_catalog.simba}
+  {$I ../core/actions_catalog.simba}
 {$ENDIF}
 {$IFNDEF WF_TEMPLATES_INCLUDED}
-  {$I WaspForge/generator/templates.simba}
+  {$I templates.simba}
 {$ENDIF}
-
-const
-  WF_ACTIONS_JSON_PATH = 'WaspForge' + PATH_SEP + 'data' + PATH_SEP + 'actions.json';
+{$IFNDEF WF_PATHS_INCLUDED}
+  {$I ../core/paths.simba}
+{$ENDIF}
 
 function WFGetStateSanitizeName(scriptName: String): String;
 var
@@ -67,7 +67,7 @@ var
   stateName: String;
 begin
   enumTypeName := 'E' + WFGetStateSanitizeName(scriptName) + 'State';
-  catalog.Load(WF_ACTIONS_JSON_PATH);
+  catalog.Load(WF_DataPath('actions.json'));
 
   for action in actions do
     if action.Enabled then

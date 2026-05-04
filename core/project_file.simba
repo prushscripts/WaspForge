@@ -7,7 +7,7 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I types.simba}
 {$ENDIF}
 
 function WFModeToString(mode: EForgeMode): String;

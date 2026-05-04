@@ -4,6 +4,6 @@
 *)
 {$DEFINE WF_TEST_COORD_LIBRARY_INCLUDED}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I ../core/types.simba}
 {$ENDIF}
 

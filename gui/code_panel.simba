@@ -4,6 +4,6 @@
 *)
 {$DEFINE WF_CODE_PANEL_INCLUDED}
 {$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+  {$I ../core/types.simba}
 {$ENDIF}
 
