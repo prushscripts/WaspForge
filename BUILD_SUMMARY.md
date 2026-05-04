@@ -6,6 +6,67 @@ This file is overwritten after each major update.
 
 ## Current progress
 
+Completed implementation steps: **1 through 14**
+
+- Steps 1–13: foundation and code generation engine completed.
+- Step 14: `tests/test_code_generator.simba` implemented (quality gate test harness).
+
+---
+
+## What was completed in this update
+
+### Step 14 — `tests/test_code_generator.simba`
+
+Implemented as a standalone runnable Simba script.
+
+The script now:
+
+1. Loads catalog from `WaspForge/data/actions.json`
+2. Builds 3 hardcoded `TForgeProject` values:
+   - `Woodcutter` (simple loop)
+   - `CrabKiller` (medium combat loop)
+   - `Battlestaff` (crafting loop)
+3. Calls `TCodeGenerator.Generate()` for each project
+4. Prints separator + full generated code block for each test
+5. Prints `[PASS]` / `[FAIL]` per test based on:
+   - non-empty output
+   - contains `{$I WaspLib/osrs.simba}`
+   - contains `end.`
+6. Prints the note:
+   - `Copy each generated block into a new Simba tab to verify it compiles.`
+
+---
+
+## Additional status notes
+
+- Linter check on `tests/test_code_generator.simba`: no linter errors.
+- `BUILD_SUMMARY.md` overwritten to latest status.
+
+---
+
+## Files touched in this update
+
+- `tests/test_code_generator.simba` (implemented)
+- `BUILD_SUMMARY.md` (overwritten)
+
+---
+
+## Required manual gate before next phase
+
+Per roadmap quality gate, do **not** proceed to Step 15 (grabbers) until manual compile verification is confirmed:
+
+- Copy each generated block from test output into separate Simba tabs
+- Verify all compile with zero errors
+- Report confirmation back before continuing
+
+# WaspForge build session summary (handoff)
+
+This file is overwritten after each major update.
+
+---
+
+## Current progress
+
 Completed steps: **1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13**
 
 ---

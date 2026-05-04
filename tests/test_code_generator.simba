@@ -3,7 +3,184 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_TEST_CODE_GENERATOR_INCLUDED}
-{$IFNDEF WF_TYPES_INCLUDED}
-  {$I WaspForge/core/types.simba}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
+{$IFNDEF WF_CODE_GENERATOR_INCLUDED}
+  {$I WaspForge/core/code_generator.simba}
+{$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I WaspForge/core/actions_catalog.simba}
 {$ENDIF}
 
+function MakeInput(
+  id, label_, value: String;
+  inputType: EInputType;
+  required: Boolean = True;
+  grabbed: Boolean = False;
+  grabHint: String = ''
+): TForgeInput;
+begin
+  Result.ID := id;
+  Result.Label_ := label_;
+  Result.InputType := inputType;
+  Result.Value := value;
+  Result.IsRequired := required;
+  Result.IsGrabbed := grabbed;
+  Result.GrabHint := grabHint;
+end;
+
+function MakeAction(
+  instanceId, catalogId, displayName, category: String;
+  inputs: TForgeInputArray
+): TForgeAction;
+begin
+  Result.InstanceID := instanceId;
+  Result.CatalogID := catalogId;
+  Result.DisplayName := displayName;
+  Result.Category := category;
+  Result.Inputs := inputs;
+  Result.TrafficLight := ETrafficLight.GREEN;
+  Result.Enabled := True;
+  Result.Notes := '';
+end;
+
+function TestPass(code: String): Boolean;
+begin
+  Result := (code.Trim() <> '') and code.Contains('{$I WaspLib/osrs.simba}') and code.Contains('end.');
+end;
+
+procedure PrintGenerated(name, code: String);
+begin
+  WriteLn('============================================================');
+  WriteLn('Generated script: ' + name);
+  WriteLn('============================================================');
+  WriteLn(code);
+end;
+
+function BuildWoodcutterProject(): TForgeProject;
+begin
+  Result.Name := 'Woodcutter';
+  Result.Mode := EForgeMode.LOOP_SCRIPT;
+  Result.MapChunks := ['DRAYNOR_VILLAGE'];
+  Result.BreakInterval := 30;
+  Result.BreakLength := 5;
+  Result.SleepTime := '00:30:00';
+  Result.QuestName := '';
+  Result.AIAPIKey := '';
+
+  Result.Actions := [
+    MakeAction('a1', 'WALK_TO', 'Walk To Trees', 'movement', [
+      MakeInput('destination', 'Destination', '[3085, 3237]', EInputType.COORDINATE, True, True),
+      MakeInput('min_dist', 'Min distance', '5', EInputType.INTEGER_VAL, False, False)
+    ]),
+    MakeAction('a2', 'INTERACT_OBJECT', 'Chop Willow', 'interaction', [
+      MakeInput('object_name', 'Object', 'Willow', EInputType.OBJECT_NAME, True),
+      MakeInput('action', 'Action', 'Chop', EInputType.ACTION_TEXT, True),
+      MakeInput('destination', 'Destination', '[3085, 3237]', EInputType.COORDINATE, False, True)
+    ]),
+    MakeAction('a3', 'WALK_TO', 'Walk To Bank', 'movement', [
+      MakeInput('destination', 'Destination', '[3092, 3244]', EInputType.COORDINATE, True, True),
+      MakeInput('min_dist', 'Min distance', '5', EInputType.INTEGER_VAL, False, False)
+    ]),
+    MakeAction('a4', 'OPEN_BANK', 'Open Bank', 'bank', []),
+    MakeAction('a5', 'DEPOSIT_ALL', 'Deposit All', 'bank', []),
+    MakeAction('a6', 'CLOSE_BANK', 'Close Bank', 'bank', [])
+  ];
+end;
+
+function BuildCrabKillerProject(): TForgeProject;
+begin
+  Result.Name := 'CrabKiller';
+  Result.Mode := EForgeMode.LOOP_SCRIPT;
+  Result.MapChunks := ['SAND_CRABS'];
+  Result.BreakInterval := 45;
+  Result.BreakLength := 8;
+  Result.SleepTime := '01:00:00';
+  Result.QuestName := '';
+  Result.AIAPIKey := '';
+
+  Result.Actions := [
+    MakeAction('b1', 'WALK_TO', 'Walk To Crabs', 'movement', [
+      MakeInput('destination', 'Destination', '[1742, 3467]', EInputType.COORDINATE, True, True),
+      MakeInput('min_dist', 'Min distance', '5', EInputType.INTEGER_VAL, False, False)
+    ]),
+    MakeAction('b2', 'ATTACK_NPC', 'Attack Crab', 'combat', [
+      MakeInput('npc_name', 'NPC', 'Sand Crab', EInputType.NPC_NAME, True)
+    ]),
+    MakeAction('b3', 'EAT_FOOD', 'Eat Food', 'combat', [
+      MakeInput('item_name', 'Food', 'Shark', EInputType.ITEM_NAME, True),
+      MakeInput('hp_threshold', 'HP threshold', '50', EInputType.INTEGER_VAL, True)
+    ]),
+    MakeAction('b4', 'LOOT_ITEM', 'Loot Item', 'utility', [
+      MakeInput('item_name', 'Item', 'Gold coins', EInputType.ITEM_NAME, True)
+    ])
+  ];
+end;
+
+function BuildBattlestaffProject(): TForgeProject;
+begin
+  Result.Name := 'Battlestaff';
+  Result.Mode := EForgeMode.LOOP_SCRIPT;
+  Result.MapChunks := ['GRAND_EXCHANGE'];
+  Result.BreakInterval := 20;
+  Result.BreakLength := 3;
+  Result.SleepTime := '';
+  Result.QuestName := '';
+  Result.AIAPIKey := '';
+
+  Result.Actions := [
+    MakeAction('c1', 'OPEN_BANK', 'Open Bank', 'bank', []),
+    MakeAction('c2', 'DEPOSIT_ALL', 'Deposit All', 'bank', []),
+    MakeAction('c3', 'WITHDRAW_ITEMS', 'Withdraw Air Orb', 'bank', [
+      MakeInput('item_name', 'Item', 'Air orb', EInputType.ITEM_NAME, True),
+      MakeInput('quantity', 'Quantity', '14', EInputType.INTEGER_VAL, True)
+    ]),
+    MakeAction('c4', 'WITHDRAW_ITEMS', 'Withdraw Battlestaff', 'bank', [
+      MakeInput('item_name', 'Item', 'Battlestaff', EInputType.ITEM_NAME, True),
+      MakeInput('quantity', 'Quantity', '14', EInputType.INTEGER_VAL, True)
+    ]),
+    MakeAction('c5', 'CLOSE_BANK', 'Close Bank', 'bank', []),
+    MakeAction('c6', 'INTERACT_INVENTORY', 'Use Air Orb', 'interaction', [
+      MakeInput('item_name', 'Item', 'Air orb', EInputType.ITEM_NAME, True),
+      MakeInput('action', 'Action', 'Use', EInputType.ACTION_TEXT, True)
+    ]),
+    MakeAction('c7', 'WAIT_XP', 'Wait XP', 'utility', [
+      MakeInput('timeout', 'Timeout', '30000', EInputType.INTEGER_VAL, True)
+    ])
+  ];
+end;
+
+procedure RunProjectTest(project: TForgeProject; generator: TCodeGenerator);
+var
+  code: String;
+begin
+  code := generator.Generate(project);
+  PrintGenerated(project.Name, code);
+
+  if TestPass(code) then
+    WriteLn('[PASS] ' + project.Name)
+  else
+    WriteLn('[FAIL] ' + project.Name);
+end;
+
+var
+  catalog: TActionsCatalog;
+  generator: TCodeGenerator;
+begin
+  catalog.Load('WaspForge/data/actions.json');
+  if catalog.LastError <> '' then
+  begin
+    WriteLn('Catalog load failed: ' + catalog.LastError);
+    Exit;
+  end;
+
+  generator.Catalog := catalog;
+
+  RunProjectTest(BuildWoodcutterProject(), generator);
+  RunProjectTest(BuildCrabKillerProject(), generator);
+  RunProjectTest(BuildBattlestaffProject(), generator);
+
+  WriteLn('');
+  WriteLn('Copy each generated block into a new Simba tab to verify it compiles.');
+end.
