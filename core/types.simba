@@ -1,0 +1,94 @@
+(*
+  WaspForge — shared types and enums for the script factory system.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_TYPES_INCLUDED}
+
+type
+  // Traffic light states for each action card
+  ETrafficLight = enum(RED, YELLOW, GREEN);
+
+  // Script output modes
+  EForgeMode = enum(LOOP_SCRIPT, SEQUENTIAL_QUEST);
+
+  // Input field types — determines what UI control appears
+  EInputType = enum(
+    COORDINATE,    // TPoint — has Grab button
+    ITEM_NAME,     // String — item name, has optional Grab button
+    NPC_NAME,      // String — NPC name, has Grab button
+    OBJECT_NAME,   // String — object name, has Grab button
+    ACTION_TEXT,   // String — uptext action e.g. 'Mine', 'Chop', 'Bank'
+    INTEGER_VAL,   // Integer — quantity, distance, time
+    BOOL_VAL,      // Boolean — checkbox
+    PRAYER_SELECT, // ERSPrayer — dropdown of prayer names
+    SPELL_SELECT,  // ERSSpell — dropdown of spell names
+    CHUNK_SELECT   // ERSChunk — dropdown of map chunks
+  );
+
+  // One input field on an action card
+  TForgeInput = record
+    ID:          String;   // machine name e.g. 'destination', 'item_name'
+    Label_:      String;   // display label e.g. 'Walk destination', 'Item name'
+    InputType:   EInputType;
+    Value:       String;   // current value as string (all types stored as string)
+    IsRequired:  Boolean;
+    IsGrabbed:   Boolean;  // true if populated by a grabber
+    GrabHint:    String;   // tooltip shown on the Grab button
+  end;
+
+  TForgeInputArray = array of TForgeInput;
+
+  // One action in the user's script
+  TForgeAction = record
+    InstanceID:   String;        // unique ID for this instance (UUID-style)
+    CatalogID:    String;        // references actions.json entry e.g. 'WALK_TO'
+    DisplayName:  String;        // shown in the card header
+    Category:     String;        // 'movement', 'bank', 'interaction', etc.
+    Inputs:       TForgeInputArray;
+    TrafficLight: ETrafficLight;
+    Enabled:      Boolean;
+    Notes:        String;        // optional user annotation
+  end;
+
+  TForgeActionArray = array of TForgeAction;
+
+  // A complete WaspForge project
+  TForgeProject = record
+    Name:         String;
+    Mode:         EForgeMode;
+    Actions:      TForgeActionArray;
+    MapChunks:    TStringArray;   // ERSChunk names needed
+    QuestName:    String;         // only used in SEQUENTIAL_QUEST mode
+    BreakInterval: Integer;       // minutes between breaks
+    BreakLength:   Integer;       // minutes per break
+    SleepTime:    String;         // HH:MM:SS overnight sleep
+    AIAPIKey:     String;         // stored locally, never committed
+  end;
+
+  // One entry in the coordinate library
+  TCoordEntry = record
+    Name:      String;
+    Point:     TPoint;
+    ChunkName: String;
+    AddedAt:   String; // timestamp
+  end;
+
+  TCoordLibrary = record
+    Entries: array of TCoordEntry;
+    Path:    String;
+  end;
+
+  // Result from any grabber
+  TGrabResult = record
+    Success:   Boolean;
+    Name:      String;
+    Point:     TPoint;
+    ChunkName: String;
+    UpText:    String;
+    ActionText:String;
+    Colors:    TCTS2ColorArray;
+    Distance:  Integer;
+  end;
+
+  TGrabResultArray = array of TGrabResult;
+

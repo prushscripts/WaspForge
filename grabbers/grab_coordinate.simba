@@ -1,0 +1,9 @@
+(*
+  WaspForge — capture player map position and chunk from live client.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_GRAB_COORDINATE_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

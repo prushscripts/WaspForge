@@ -1,0 +1,9 @@
+(*
+  WaspForge — left builder panel scaffolding for ordered action cards.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_ACTION_PANEL_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

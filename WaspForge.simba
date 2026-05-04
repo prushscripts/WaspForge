@@ -1,0 +1,9 @@
+(*
+  WaspForge — main entry ScriptForm launcher (wired in later milestones).
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_MAIN_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

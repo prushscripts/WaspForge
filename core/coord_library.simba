@@ -1,0 +1,9 @@
+(*
+  WaspForge — persistent named coordinate library (coords.json).
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_COORD_LIBRARY_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

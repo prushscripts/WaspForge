@@ -1,0 +1,9 @@
+(*
+  WaspForge — standalone tests for coord library persistence (save/load).
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_TEST_COORD_LIBRARY_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

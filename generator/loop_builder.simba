@@ -1,0 +1,9 @@
+(*
+  WaspForge — builds Run()/quest Solve() loop bodies from actions.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_LOOP_BUILDER_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

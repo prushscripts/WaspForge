@@ -1,0 +1,9 @@
+(*
+  WaspAtlas — global positioning and navigation include for WaspForge.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_ATLAS_INCLUDED}
+{$IFNDEF WF_ATLAS_LOADER_INCLUDED}
+  {$I WaspForge/atlas/atlas_loader.simba}
+{$ENDIF}
+

@@ -1,0 +1,9 @@
+(*
+  WaspForge — list nearby RSEntities via map JSON within a tile radius.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_GRAB_NPCS_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

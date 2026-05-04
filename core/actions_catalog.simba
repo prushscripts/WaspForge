@@ -1,0 +1,178 @@
+(*
+  WaspForge — loads and exposes the JSON action catalog.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_ACTIONS_CATALOG_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+
+type
+  TCatalogEntry = record
+    ID:                String;
+    DisplayName:       String;
+    Category:          String;
+    Description:       String;
+    StateEnumName:     String;
+    Inputs:            TForgeInputArray;
+    TerminalCondition: String;
+    DoActionTemplate:  TStringArray;
+    GetStateCondition: String;
+  end;
+
+  TCatalogEntryArray = array of TCatalogEntry;
+
+  TActionsCatalog = record
+    Entries: TCatalogEntryArray;
+    Path:    String;
+    LastError: String;
+  end;
+
+function WFInputTypeFromString(inputTypeName: String; out inputType: EInputType): Boolean;
+begin
+  case UpperCase(inputTypeName.Trim()) of
+    'COORDINATE':    inputType := EInputType.COORDINATE;
+    'ITEM_NAME':     inputType := EInputType.ITEM_NAME;
+    'NPC_NAME':      inputType := EInputType.NPC_NAME;
+    'OBJECT_NAME':   inputType := EInputType.OBJECT_NAME;
+    'ACTION_TEXT':   inputType := EInputType.ACTION_TEXT;
+    'INTEGER_VAL':   inputType := EInputType.INTEGER_VAL;
+    'BOOL_VAL':      inputType := EInputType.BOOL_VAL;
+    'PRAYER_SELECT': inputType := EInputType.PRAYER_SELECT;
+    'SPELL_SELECT':  inputType := EInputType.SPELL_SELECT;
+    'CHUNK_SELECT':  inputType := EInputType.CHUNK_SELECT;
+  else
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+procedure TActionsCatalog.Load(path: String);
+var
+  parser: TJSONParser;
+  entryJson, inputJson: TJSONItem;
+  templateJson, inputsJson: TJSONItem;
+  i, j, k: Integer;
+  entry: TCatalogEntry;
+  inputField: TForgeInput;
+  inputType: EInputType;
+begin
+  Self.Path := path;
+  Self.LastError := '';
+  Self.Entries := [];
+
+  if not FileExists(path) then
+  begin
+    Self.LastError := 'actions catalog file not found: ' + path;
+    Exit;
+  end;
+
+  parser := new TJSONParser();
+  parser.Load(path);
+
+  if parser.Typ <> EJSONType.ARR then
+  begin
+    Self.LastError := 'actions catalog root must be a JSON array';
+    Exit;
+  end;
+
+  for i := 0 to parser.Count - 1 do
+  begin
+    entryJson := parser.Item[i];
+    if entryJson.Typ <> EJSONType.OBJ then
+      Continue;
+
+    entry := Default(TCatalogEntry);
+    entry.ID                := entryJson.Item['id'].AsString;
+    entry.DisplayName       := entryJson.Item['displayName'].AsString;
+    entry.Category          := entryJson.Item['category'].AsString;
+    entry.Description       := entryJson.Item['description'].AsString;
+    entry.StateEnumName     := entryJson.Item['stateEnumName'].AsString;
+    entry.TerminalCondition := entryJson.Item['terminalCondition'].AsString;
+    entry.GetStateCondition := entryJson.Item['getStateCondition'].AsString;
+
+    if entryJson.Has('doActionTemplate') then
+    begin
+      templateJson := entryJson.Item['doActionTemplate'];
+      if templateJson.Typ = EJSONType.ARR then
+        for k := 0 to templateJson.Count - 1 do
+          entry.DoActionTemplate += templateJson.Item[k].AsString;
+    end;
+
+    if entryJson.Has('inputs') then
+    begin
+      inputsJson := entryJson.Item['inputs'];
+      if inputsJson.Typ = EJSONType.ARR then
+      begin
+        SetLength(entry.Inputs, inputsJson.Count);
+        for j := 0 to inputsJson.Count - 1 do
+        begin
+          inputJson := inputsJson.Item[j];
+          inputField := Default(TForgeInput);
+
+          inputField.ID         := inputJson.Item['id'].AsString;
+          inputField.Label_     := inputJson.Item['label'].AsString;
+          inputField.IsRequired := inputJson.Item['required'].AsBool;
+          inputField.IsGrabbed  := False;
+
+          if inputJson.Has('default') then
+            inputField.Value := inputJson.Item['default'].AsString
+          else
+            inputField.Value := '';
+
+          if inputJson.Has('grabHint') then
+            inputField.GrabHint := inputJson.Item['grabHint'].AsString
+          else
+            inputField.GrabHint := '';
+
+          if not WFInputTypeFromString(inputJson.Item['type'].AsString, inputType) then
+          begin
+            Self.LastError := 'unknown input type "' + inputJson.Item['type'].AsString + '" in action "' + entry.ID + '"';
+            Exit;
+          end;
+          inputField.InputType := inputType;
+
+          entry.Inputs[j] := inputField;
+        end;
+      end;
+    end;
+
+    Self.Entries += entry;
+  end;
+end;
+
+function TActionsCatalog.GetByID(id: String): TCatalogEntry;
+var
+  entry: TCatalogEntry;
+begin
+  Self.LastError := '';
+  for entry in Self.Entries do
+    if entry.ID = id then
+      Exit(entry);
+
+  Self.LastError := 'action ID not found: ' + id;
+end;
+
+function TActionsCatalog.GetByCategory(cat: String): TCatalogEntryArray;
+var
+  entry: TCatalogEntry;
+begin
+  Self.LastError := '';
+  for entry in Self.Entries do
+    if LowerCase(entry.Category) = LowerCase(cat) then
+      Result += entry;
+end;
+
+function TActionsCatalog.IsValidID(id: String): Boolean;
+var
+  entry: TCatalogEntry;
+begin
+  for entry in Self.Entries do
+    if entry.ID = id then
+      Exit(True);
+  Result := False;
+end;
+

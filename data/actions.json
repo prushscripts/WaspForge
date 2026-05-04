@@ -1,0 +1,798 @@
+[
+  {
+    "id": "WALK_TO",
+    "displayName": "Walk To",
+    "category": "movement",
+    "description": "Web-walks to a map coordinate using Map.Walker.WebWalk (randomness 0.0–1.0). Completes when Map.Walker.InRange matches.",
+    "stateEnumName": "WALK_TO",
+    "inputs": [
+      {
+        "id": "destination",
+        "label": "Destination coordinate",
+        "type": "COORDINATE",
+        "required": true,
+        "grabHint": "Stand on the destination tile, then click Grab"
+      },
+      {
+        "id": "min_dist",
+        "label": "Minimum distance (pixels, tile scale)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "5",
+        "grabHint": "Typical tile pitch is 4 px; catalog templates multiply by 4 for InRange/WebWalk minDist"
+      },
+      {
+        "id": "randomness",
+        "label": "Path randomness (0.0 - 1.0)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "0.2",
+        "grabHint": "Passed to Map.Walker.WebWalk as Double; must stay within 0.0..1.0"
+      }
+    ],
+    "terminalCondition": "Map.Walker.InRange({{destination}}, {{min_dist}} * 4)",
+    "doActionTemplate": [
+      "procedure TScript.DoWalkTo();",
+      "begin",
+      "  Logger.Info('Walking to destination...');",
+      "  Map.Walker.WebWalk({{destination}}, {{min_dist}} * 4, {{randomness}});",
+      "  SleepUntil(Map.Walker.InRange({{destination}}, {{min_dist}} * 4), 200, 15000);",
+      "end;"
+    ],
+    "getStateCondition": "not Map.Walker.InRange({{destination}}, {{min_dist}} * 4)"
+  },
+  {
+    "id": "USE_FAIRY_RING",
+    "displayName": "Use Fairy Ring",
+    "category": "movement",
+    "description": "Uses FairyRing.Teleport(fairyCode) — WaspLib resolves nearest fairy ring from map JSON when the dial UI is closed.",
+    "stateEnumName": "USE_FAIRY_RING",
+    "inputs": [
+      {
+        "id": "fairy_code",
+        "label": "Fairy ring code (e.g. dkp, als)",
+        "type": "ACTION_TEXT",
+        "required": true,
+        "grabHint": "Three-letter dial code as shown in-game"
+      },
+      {
+        "id": "approach_tile",
+        "label": "Stand near ring (coordinate)",
+        "type": "COORDINATE",
+        "required": true,
+        "grabHint": "Used in GetState so this step only arms when you are beside the fairy ring"
+      },
+      {
+        "id": "approach_slack",
+        "label": "Approach slack (pixels)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "96",
+        "grabHint": "Radius passed to Map.Walker.InRange for approach_tile"
+      },
+      {
+        "id": "walk_to_ring",
+        "label": "Walk to ring if needed",
+        "type": "BOOL_VAL",
+        "required": false,
+        "default": "True",
+        "grabHint": "Passes walk flag to FairyRing.Teleport overload"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoUseFairyRing();",
+      "begin",
+      "  Logger.Info('Teleporting fairy ring {{fairy_code}}...');",
+      "  Map.Walker.WebWalk({{approach_tile}}, 32, 0.2);",
+      "  SleepUntil(Map.Walker.InRange({{approach_tile}}, {{approach_slack}}), 200, 12000);",
+      "  FairyRing.Teleport('{{fairy_code}}', {{walk_to_ring}});",
+      "  Minimap.WaitMoving();",
+      "end;"
+    ],
+    "getStateCondition": "Map.Walker.InRange({{approach_tile}}, {{approach_slack}}) and not FairyRing.IsOpen()"
+  },
+  {
+    "id": "USE_TELEPORT_SPELL",
+    "displayName": "Cast Teleport Spell",
+    "category": "movement",
+    "description": "Casts a spell with Magic.Cast(ERSSpell.X); Magic.Open and spell selection are handled inside Magic.Cast.",
+    "stateEnumName": "USE_TELEPORT_SPELL",
+    "inputs": [
+      {
+        "id": "spell",
+        "label": "Spell",
+        "type": "SPELL_SELECT",
+        "required": true,
+        "grabHint": "Pick ERSSpell enum member (e.g. VARROCK_TELEPORT)"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoUseTeleportSpell();",
+      "begin",
+      "  Logger.Info('Casting spell {{spell}}...');",
+      "  Magic.Cast({{spell}});",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "USE_TELEPORT_ITEM",
+    "displayName": "Use Teleport Item",
+    "category": "movement",
+    "description": "Uses Inventory.Items.Interact(item, option) for jewellery/tablet rub/operate teleports.",
+    "stateEnumName": "USE_TELEPORT_ITEM",
+    "inputs": [
+      {
+        "id": "item_name",
+        "label": "Item name (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Exact item name as in-game"
+      },
+      {
+        "id": "interaction",
+        "label": "Interaction option uptext",
+        "type": "ACTION_TEXT",
+        "required": false,
+        "default": "Rub",
+        "grabHint": "e.g. Rub, Operate — passed to Inventory.Items.Interact"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoUseTeleportItem();",
+      "begin",
+      "  Logger.Info('Using teleport item {{item_name}} ({{interaction}})...');",
+      "  Inventory.Items.Interact('{{item_name}}', '{{interaction}}');",
+      "  Minimap.WaitMoving();",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "OPEN_BANK",
+    "displayName": "Open Bank",
+    "category": "bank",
+    "description": "Opens the bank with Bank.Open() (nearest bank booth/NPC via uptext).",
+    "stateEnumName": "OPEN_BANK",
+    "inputs": [],
+    "terminalCondition": "Bank.IsOpen()",
+    "doActionTemplate": [
+      "procedure TScript.DoOpenBank();",
+      "begin",
+      "  Logger.Info('Opening bank...');",
+      "  Bank.Open();",
+      "  SleepUntil(Bank.IsOpen(), 200, 8000);",
+      "end;"
+    ],
+    "getStateCondition": "not Bank.IsOpen()"
+  },
+  {
+    "id": "DEPOSIT_ALL",
+    "displayName": "Deposit All",
+    "category": "bank",
+    "description": "Deposits the full inventory with Bank.DepositInventory().",
+    "stateEnumName": "DEPOSIT_ALL",
+    "inputs": [],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoDepositAll();",
+      "begin",
+      "  Logger.Info('Depositing inventory...');",
+      "  Bank.DepositInventory();",
+      "end;"
+    ],
+    "getStateCondition": "Bank.IsOpen()"
+  },
+  {
+    "id": "DEPOSIT_ITEMS",
+    "displayName": "Deposit Listed Items",
+    "category": "bank",
+    "description": "Deposits specific items with Bank.DepositDifferent(TRSItemArray). Placeholder {{items_list}} must expand to comma-separated quoted TRSItem literals.",
+    "stateEnumName": "DEPOSIT_ITEMS",
+    "inputs": [
+      {
+        "id": "items_list",
+        "label": "Items (comma-separated names)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Generator expands to ['Name1', 'Name2'] for DepositDifferent"
+      }
+    ],
+    "terminalCondition": "Bank.IsOpen()",
+    "doActionTemplate": [
+      "procedure TScript.DoDepositItems();",
+      "begin",
+      "  Logger.Info('Depositing selected items...');",
+      "  Bank.DepositDifferent([{{items_list}}]);",
+      "end;"
+    ],
+    "getStateCondition": "Bank.IsOpen()"
+  },
+  {
+    "id": "WITHDRAW_ITEMS",
+    "displayName": "Withdraw Item",
+    "category": "bank",
+    "description": "Withdraws one stack with Bank.Withdraw(item.ToBankItem(quantity)). Add another action for more items.",
+    "stateEnumName": "WITHDRAW_ITEMS",
+    "inputs": [
+      {
+        "id": "item_name",
+        "label": "Item name (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Exact bank item name"
+      },
+      {
+        "id": "quantity",
+        "label": "Quantity (integer)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "Passed to TRSItem.ToBankItem(quantity)"
+      }
+    ],
+    "terminalCondition": "Bank.IsOpen()",
+    "doActionTemplate": [
+      "procedure TScript.DoWithdrawItems();",
+      "begin",
+      "  Logger.Info('Withdrawing {{item_name}} x{{quantity}}...');",
+      "  Bank.Withdraw('{{item_name}}'.ToBankItem({{quantity}}));",
+      "end;"
+    ],
+    "getStateCondition": "Bank.IsOpen()"
+  },
+  {
+    "id": "CLOSE_BANK",
+    "displayName": "Close Bank",
+    "category": "bank",
+    "description": "Closes the bank interface with Bank.Close().",
+    "stateEnumName": "CLOSE_BANK",
+    "inputs": [
+      {
+        "id": "use_escape",
+        "label": "Press escape to close",
+        "type": "BOOL_VAL",
+        "required": false,
+        "default": "False",
+        "grabHint": "Maps to Bank.Close(Boolean) overload when true"
+      }
+    ],
+    "terminalCondition": "not Bank.IsOpen()",
+    "doActionTemplate": [
+      "procedure TScript.DoCloseBank();",
+      "begin",
+      "  Logger.Info('Closing bank...');",
+      "  Bank.Close({{use_escape}});",
+      "  SleepUntil(not Bank.IsOpen(), 150, 5000);",
+      "end;"
+    ],
+    "getStateCondition": "Bank.IsOpen()"
+  },
+  {
+    "id": "INTERACT_OBJECT",
+    "displayName": "Interact With Object",
+    "category": "interaction",
+    "description": "Resolves ObjectsJSON entries and calls TRSObject.WalkInteract with TStringArray actions.",
+    "stateEnumName": "INTERACT_OBJECT",
+    "inputs": [
+      {
+        "id": "object_name",
+        "label": "Object name (ObjectsJSON)",
+        "type": "OBJECT_NAME",
+        "required": true,
+        "grabHint": "Exact name key in map JSON (e.g. Bank booth)"
+      },
+      {
+        "id": "action",
+        "label": "Action uptext",
+        "type": "ACTION_TEXT",
+        "required": true,
+        "grabHint": "Menu option such as Bank, Chop, Mine"
+      },
+      {
+        "id": "json_amount",
+        "label": "Unique JSON object count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "ObjectsJSON.GetByName(name, amount) amount parameter"
+      },
+      {
+        "id": "attempts",
+        "label": "Hover/attempt count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "5",
+        "grabHint": "WalkInteract attempts parameter"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoInteractObject();",
+      "var",
+      "  objs: TRSObjectArray;",
+      "  idx: Integer;",
+      "begin",
+      "  Logger.Info('Interacting with object {{object_name}} ({{action}})...');",
+      "  objs := TRSObjectArray.Create(Map.Walker, ObjectsJSON.GetByName('{{object_name}}', {{json_amount}}));",
+      "  idx := objs.ClosestIndex(Map.Walker.Position());",
+      "  objs[idx].WalkInteract(['{{action}}'], {{attempts}});",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "INTERACT_NPC",
+    "displayName": "Interact With NPC",
+    "category": "interaction",
+    "description": "Resolves NPCsJSON entries and calls TRSEntity.WalkInteract with TStringArray actions.",
+    "stateEnumName": "INTERACT_NPC",
+    "inputs": [
+      {
+        "id": "npc_name",
+        "label": "NPC name (NPCsJSON)",
+        "type": "NPC_NAME",
+        "required": true,
+        "grabHint": "Exact NPC name key in map JSON"
+      },
+      {
+        "id": "action",
+        "label": "Action uptext",
+        "type": "ACTION_TEXT",
+        "required": true,
+        "grabHint": "e.g. Talk-to, Bank"
+      },
+      {
+        "id": "json_amount",
+        "label": "Unique JSON NPC count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "NPCsJSON.GetByName(name, amount) amount parameter"
+      },
+      {
+        "id": "attempts",
+        "label": "Hover/attempt count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "5",
+        "grabHint": "WalkInteract attempts parameter"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoInteractNpc();",
+      "var",
+      "  ents: TRSEntityArray;",
+      "  idx: Integer;",
+      "begin",
+      "  Logger.Info('Interacting with NPC {{npc_name}} ({{action}})...');",
+      "  ents := TRSEntityArray.Create(Map.Walker, NPCsJSON.GetByName('{{npc_name}}', {{json_amount}}));",
+      "  idx := ents.ClosestIndex(Map.Walker.Position());",
+      "  ents[idx].WalkInteract(['{{action}}'], {{attempts}});",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "USE_ITEM_ON_OBJECT",
+    "displayName": "Use Item On Object",
+    "category": "interaction",
+    "description": "Selects an inventory item then WalkClicks the nearest TRSObject from ObjectsJSON.",
+    "stateEnumName": "USE_ITEM_ON_OBJECT",
+    "inputs": [
+      {
+        "id": "item_name",
+        "label": "Inventory item (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Item to use from inventory"
+      },
+      {
+        "id": "object_name",
+        "label": "Object name (ObjectsJSON)",
+        "type": "OBJECT_NAME",
+        "required": true,
+        "grabHint": "Target object name"
+      },
+      {
+        "id": "json_amount",
+        "label": "Unique JSON object count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "ObjectsJSON.GetByName amount"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoUseItemOnObject();",
+      "var",
+      "  objs: TRSObjectArray;",
+      "  idx: Integer;",
+      "begin",
+      "  Logger.Info('Using {{item_name}} on {{object_name}}...');",
+      "  if not Inventory.Select('{{item_name}}', True) then Exit;",
+      "  objs := TRSObjectArray.Create(Map.Walker, ObjectsJSON.GetByName('{{object_name}}', {{json_amount}}));",
+      "  idx := objs.ClosestIndex(Map.Walker.Position());",
+      "  objs[idx].WalkClick();",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "USE_ITEM_ON_NPC",
+    "displayName": "Use Item On NPC",
+    "category": "interaction",
+    "description": "Selects an inventory item then WalkClicks the nearest TRSEntity from NPCsJSON.",
+    "stateEnumName": "USE_ITEM_ON_NPC",
+    "inputs": [
+      {
+        "id": "item_name",
+        "label": "Inventory item (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Item to use from inventory"
+      },
+      {
+        "id": "npc_name",
+        "label": "NPC name (NPCsJSON)",
+        "type": "NPC_NAME",
+        "required": true,
+        "grabHint": "Target NPC name"
+      },
+      {
+        "id": "json_amount",
+        "label": "Unique JSON NPC count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "NPCsJSON.GetByName amount"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoUseItemOnNpc();",
+      "var",
+      "  ents: TRSEntityArray;",
+      "  idx: Integer;",
+      "begin",
+      "  Logger.Info('Using {{item_name}} on {{npc_name}}...');",
+      "  if not Inventory.Select('{{item_name}}', True) then Exit;",
+      "  ents := TRSEntityArray.Create(Map.Walker, NPCsJSON.GetByName('{{npc_name}}', {{json_amount}}));",
+      "  idx := ents.ClosestIndex(Map.Walker.Position());",
+      "  ents[idx].WalkClick();",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "CLICK_TILE",
+    "displayName": "Click Map Tile",
+    "category": "interaction",
+    "description": "WebWalks into TRSWalker screen-walk range, then uses Map.Walker.Click after Map.Walker.IsWalkable. Optionally sets Map.Walker.TargetUpText/ActionUpText for ChooseOption when an action uptext is required.",
+    "stateEnumName": "CLICK_TILE",
+    "inputs": [
+      {
+        "id": "tile",
+        "label": "Tile coordinate",
+        "type": "COORDINATE",
+        "required": true,
+        "grabHint": "Global map coordinate to click"
+      },
+      {
+        "id": "action",
+        "label": "ChooseOption action (empty for left-click walk)",
+        "type": "ACTION_TEXT",
+        "required": false,
+        "default": "",
+        "grabHint": "Leave empty to left-click the tile; otherwise partial uptext for ChooseOption"
+      },
+      {
+        "id": "walk_min_dist",
+        "label": "WebWalk min distance (pixels)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "12",
+        "grabHint": "Map.Walker.WebWalk minDist before clicking"
+      },
+      {
+        "id": "path_randomness",
+        "label": "WebWalk randomness (0.0 - 1.0)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "0.2",
+        "grabHint": "Double passed to Map.Walker.WebWalk"
+      },
+      {
+        "id": "click_randomness",
+        "label": "Map.Walker.Click pixel jitter",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "8",
+        "grabHint": "Integer randomness passed to Map.Walker.Click"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoClickTile();",
+      "var",
+      "  me, mm: TPoint;",
+      "  savedTarget, savedAction, savedWalk: TStringArray;",
+      "  wasScreen, hadAction: Boolean;",
+      "begin",
+      "  me := Map.Walker.Position();",
+      "  Logger.Info('Clicking map tile...');",
+      "  if not Map.Walker.WebWalk({{tile}}, {{walk_min_dist}}, {{path_randomness}}) then Exit;",
+      "  me := Map.Walker.Position();",
+      "  if not Map.Walker.IsWalkable({{tile}}, me, mm, Minimap.CompassRadians) then",
+      "  begin",
+      "    Logger.Warn('Click tile: tile not reachable on mainscreen from current position');",
+      "    Exit;",
+      "  end;",
+      "  savedTarget := Map.Walker.TargetUpText;",
+      "  savedAction := Map.Walker.ActionUpText;",
+      "  savedWalk := Map.Walker.WalkUpText;",
+      "  wasScreen := Map.Walker.ScreenWalk;",
+      "  hadAction := Length('{{action}}') > 0;",
+      "  Map.Walker.ScreenWalk := True;",
+      "  Map.Walker.TargetUpText := [];",
+      "  Map.Walker.ActionUpText := [];",
+      "  if hadAction then",
+      "  begin",
+      "    Map.Walker.TargetUpText := ['{{action}}'];",
+      "    Map.Walker.ActionUpText := ['{{action}}'];",
+      "  end;",
+      "  Map.Walker.Walking := True;",
+      "  Map.Walker.Click(me, {{tile}}, mm, {{click_randomness}});",
+      "  Map.Walker.TargetUpText := savedTarget;",
+      "  Map.Walker.ActionUpText := savedAction;",
+      "  Map.Walker.WalkUpText := savedWalk;",
+      "  Map.Walker.ScreenWalk := wasScreen;",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "DROP_ITEMS",
+    "displayName": "Drop Items",
+    "category": "inventory",
+    "description": "Drops listed TRSItem stacks via Inventory.Drop(TRSItemArray).",
+    "stateEnumName": "DROP_ITEMS",
+    "inputs": [
+      {
+        "id": "items_list",
+        "label": "Items (comma-separated names)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Generator expands to TRSItemArray literal"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoDropItems();",
+      "begin",
+      "  Logger.Info('Dropping items...');",
+      "  Inventory.Drop([{{items_list}}]);",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "EAT_FOOD",
+    "displayName": "Eat Food",
+    "category": "inventory",
+    "description": "Eats food with Inventory.Items.Interact when Minimap HP percent is below threshold.",
+    "stateEnumName": "EAT_FOOD",
+    "inputs": [
+      {
+        "id": "food_name",
+        "label": "Food item (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Exact food name"
+      },
+      {
+        "id": "hp_percent",
+        "label": "Eat below HP percent (0-100)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "65",
+        "grabHint": "Compared to Minimap.GetPercent(ERSMinimapOrb.HITPOINTS)"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoEatFood();",
+      "begin",
+      "  if Minimap.GetPercent(ERSMinimapOrb.HITPOINTS) >= {{hp_percent}} then Exit;",
+      "  Logger.Info('Eating {{food_name}}...');",
+      "  Inventory.Items.Interact('{{food_name}}', 'Eat');",
+      "end;"
+    ],
+    "getStateCondition": "Minimap.GetPercent(ERSMinimapOrb.HITPOINTS) < {{hp_percent}}"
+  },
+  {
+    "id": "DRINK_POTION",
+    "displayName": "Drink Potion",
+    "category": "inventory",
+    "description": "Drinks a potion via Inventory.Items.Interact(potion, 'Drink').",
+    "stateEnumName": "DRINK_POTION",
+    "inputs": [
+      {
+        "id": "potion_name",
+        "label": "Potion item (TRSItem)",
+        "type": "ITEM_NAME",
+        "required": true,
+        "grabHint": "Exact potion name"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoDrinkPotion();",
+      "begin",
+      "  Logger.Info('Drinking {{potion_name}}...');",
+      "  Inventory.Items.Interact('{{potion_name}}', 'Drink');",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "ATTACK_NPC",
+    "displayName": "Attack NPC",
+    "category": "inventory",
+    "description": "Uses TRSEntity.WalkInteract(['Attack']) on the nearest NPC from NPCsJSON.",
+    "stateEnumName": "ATTACK_NPC",
+    "inputs": [
+      {
+        "id": "npc_name",
+        "label": "NPC name (NPCsJSON)",
+        "type": "NPC_NAME",
+        "required": true,
+        "grabHint": "NPC name to attack"
+      },
+      {
+        "id": "json_amount",
+        "label": "Unique JSON NPC count",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "1",
+        "grabHint": "NPCsJSON.GetByName amount"
+      },
+      {
+        "id": "attempts",
+        "label": "WalkInteract attempts",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "5",
+        "grabHint": "Attempts parameter for WalkInteract"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoAttackNpc();",
+      "var",
+      "  ents: TRSEntityArray;",
+      "  idx: Integer;",
+      "begin",
+      "  Logger.Info('Attacking {{npc_name}}...');",
+      "  ents := TRSEntityArray.Create(Map.Walker, NPCsJSON.GetByName('{{npc_name}}', {{json_amount}}));",
+      "  idx := ents.ClosestIndex(Map.Walker.Position());",
+      "  ents[idx].WalkInteract(['Attack'], {{attempts}});",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  },
+  {
+    "id": "ENABLE_PRAYER",
+    "displayName": "Enable Prayer",
+    "category": "utility",
+    "description": "Opens the prayer tab and activates prayers with Prayer.Activate(TRSPrayerSet).",
+    "stateEnumName": "ENABLE_PRAYER",
+    "inputs": [
+      {
+        "id": "prayer",
+        "label": "Prayer",
+        "type": "PRAYER_SELECT",
+        "required": true,
+        "grabHint": "ERSPrayer enum literal, e.g. ERSPrayer.PROTECT_FROM_MELEE"
+      }
+    ],
+    "terminalCondition": "Prayer.IsActive([{{prayer}}])",
+    "doActionTemplate": [
+      "procedure TScript.DoEnablePrayer();",
+      "begin",
+      "  Logger.Info('Activating prayer {{prayer}}...');",
+      "  if not Prayer.Open() then Exit;",
+      "  Prayer.Activate([{{prayer}}]);",
+      "end;"
+    ],
+    "getStateCondition": "not Prayer.IsActive([{{prayer}}])"
+  },
+  {
+    "id": "LOOT_ITEM",
+    "displayName": "Loot Ground Item",
+    "category": "utility",
+    "description": "Samples ERSDot.ITEM minimap dots, projects to mainscreen, right-clicks, and uses ChooseOption.Select for Take (mirrors Antiban.HoverMSTile flow).",
+    "stateEnumName": "LOOT_ITEM",
+    "inputs": [
+      {
+        "id": "max_tries",
+        "label": "Max minimap samples",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "15",
+        "grabHint": "Loop upper bound when searching for visible loot"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoLootItem();",
+      "var",
+      "  dots: TPointArray;",
+      "  tries: Integer;",
+      "  a: Double;",
+      "  rDot: TPoint;",
+      "  msBox: TBox;",
+      "  cTPA: TPointArray;",
+      "  cArr: TColorArray;",
+      "begin",
+      "  Logger.Info('Looting ground item...');",
+      "  dots := Minimap.GetDots(ERSDot.ITEM);",
+      "  if dots = [] then Exit;",
+      "  a := Minimap.CompassRadians;",
+      "  for tries := 0 to {{max_tries}} - 1 do",
+      "  begin",
+      "    rDot := dots[Random(Low(dots), High(dots))];",
+      "    msBox := Minimap.Vector2MSQuad([rDot.X, rDot.Y, 0], a).Bounds;",
+      "    if not MainScreen.Bounds.ContainsBox(msBox) then Continue;",
+      "    cArr := Target.GetColors(TPointArray.CreateFromBox(msBox, True));",
+      "    cTPA := Target.FindColor(cArr.GetRarest(), 15, msBox);",
+      "    if cTPA = [] then Continue;",
+      "    Mouse.Move(cTPA.Mean());",
+      "    Mouse.Click(EMouseButton.RIGHT);",
+      "    if ChooseOption.Select(['Take', 'take']) then Exit;",
+      "    ChooseOption.Close();",
+      "  end;",
+      "end;"
+    ],
+    "getStateCondition": "Minimap.GetDots(ERSDot.ITEM) <> []"
+  },
+  {
+    "id": "WAIT_XP",
+    "displayName": "Wait For XP",
+    "category": "utility",
+    "description": "Blocks until XP is gained using XPBar.WaitXP(time, interval) per WaspLib defaults.",
+    "stateEnumName": "WAIT_XP",
+    "inputs": [
+      {
+        "id": "timeout_ms",
+        "label": "Timeout (ms)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "60000",
+        "grabHint": "First argument to XPBar.WaitXP"
+      },
+      {
+        "id": "poll_interval",
+        "label": "Poll interval (ms, -1 default)",
+        "type": "INTEGER_VAL",
+        "required": false,
+        "default": "-1",
+        "grabHint": "Second argument to XPBar.WaitXP; keep -1 for WaspLib default"
+      }
+    ],
+    "terminalCondition": "True",
+    "doActionTemplate": [
+      "procedure TScript.DoWaitXp();",
+      "begin",
+      "  Logger.Info('Waiting for XP (timeout {{timeout_ms}} ms)...');",
+      "  XPBar.WaitXP({{timeout_ms}}, {{poll_interval}});",
+      "end;"
+    ],
+    "getStateCondition": "True"
+  }
+]

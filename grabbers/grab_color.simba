@@ -1,0 +1,9 @@
+(*
+  WaspForge — sample CTS2 color data at the current mouse position.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_GRAB_COLOR_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

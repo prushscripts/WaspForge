@@ -1,0 +1,9 @@
+(*
+  WaspForge — AI planner text input panel and orchestration hooks.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_AI_PLANNER_PANEL_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

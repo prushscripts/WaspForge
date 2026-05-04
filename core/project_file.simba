@@ -1,0 +1,9 @@
+(*
+  WaspForge — save/load WaspForge project files (.wfproj JSON).
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_PROJECT_FILE_INCLUDED}
+{$IFNDEF WF_TYPES_INCLUDED}
+  {$I WaspForge/core/types.simba}
+{$ENDIF}
+

@@ -1,0 +1,9 @@
+(*
+  WaspForge Atlas — underground atlas coverage.
+  Part of the WaspForge script factory system.
+*)
+{$DEFINE WF_ATLAS_UNDERGROUND_INCLUDED}
+{$IFNDEF WF_ATLAS_TYPES_INCLUDED}
+  {$I WaspForge/atlas/atlas_types.simba}
+{$ENDIF}
+
