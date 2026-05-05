@@ -23,6 +23,9 @@ type
     LastCode: String;
   end;
 
+var
+  CodePanel: TCodePanel;
+
 procedure TCodePanel.OnCopyClick(_sender: TLazObject);
 begin
   SetClipBoard(Self.Preview.Text);
@@ -63,8 +66,8 @@ begin
   Self.BtnSave := TLazButton.CreateEx(actionsBar, 'Save .simba', '', 94, 5, 100, 24);
   Self.Status := TLazLabel.CreateEx(actionsBar, 'Lines: 0 | Actions: 0 | 0 GREEN 0 RED', '', 202, 9, 420, 20);
 
-  Self.BtnCopy.OnClick := @Self.OnCopyClick;
-  Self.BtnSave.OnClick := @Self.OnSaveClick;
+  Self.BtnCopy.OnClick := @CodePanel.OnCopyClick;
+  Self.BtnSave.OnClick := @CodePanel.OnSaveClick;
 end;
 
 procedure TCodePanel.SetStatus(linesCount, actionsCount, greenCount, redCount: Integer);

@@ -29,6 +29,9 @@ type
     OnChanged: TLazNotifyEvent;
   end;
 
+var
+  ActionPanel: TActionPanel;
+
 procedure TActionPanel.EmitChanged(sender: TLazObject);
 begin
   if Self.OnChanged <> nil then
@@ -57,15 +60,15 @@ procedure TActionPanel.BindCardEvents(cardIdx: Integer);
 var
   j: Integer;
 begin
-  Self.Cards[cardIdx].ActionType.OnChange := @Self.OnActionTypeChanged;
-  Self.Cards[cardIdx].BtnMoveUp.OnClick := @Self.OnMoveUpClick;
-  Self.Cards[cardIdx].BtnMoveDown.OnClick := @Self.OnMoveDownClick;
-  Self.Cards[cardIdx].BtnDelete.OnClick := @Self.OnDeleteClick;
+  Self.Cards[cardIdx].ActionType.OnChange := @ActionPanel.OnActionTypeChanged;
+  Self.Cards[cardIdx].BtnMoveUp.OnClick := @ActionPanel.OnMoveUpClick;
+  Self.Cards[cardIdx].BtnMoveDown.OnClick := @ActionPanel.OnMoveDownClick;
+  Self.Cards[cardIdx].BtnDelete.OnClick := @ActionPanel.OnDeleteClick;
 
   for j := 0 to High(Self.Cards[cardIdx].InputEdits) do
   begin
-    Self.Cards[cardIdx].InputEdits[j].OnChange := @Self.OnInputChanged;
-    Self.Cards[cardIdx].GrabButtons[j].OnClick := @Self.OnGrabClick;
+    Self.Cards[cardIdx].InputEdits[j].OnChange := @ActionPanel.OnInputChanged;
+    Self.Cards[cardIdx].GrabButtons[j].OnClick := @ActionPanel.OnGrabClick;
   end;
 end;
 
@@ -247,10 +250,10 @@ begin
   topPanel.Caption := '';
   topPanel.BevelOuter := ELazPanelBevel.None;
   Self.ScriptNameEdit := TLazEdit.CreateEx(topPanel, 'Script Name', '', 8, 24, 220, 24);
-  Self.ScriptNameEdit.OnChange := @Self.EmitChanged;
+  Self.ScriptNameEdit.OnChange := @ActionPanel.EmitChanged;
 
   Self.BtnAddAction := TLazButton.CreateEx(topPanel, '+ Add Action', '', 240, 24, 120, 24);
-  Self.BtnAddAction.OnClick := @Self.OnAddActionClick;
+  Self.BtnAddAction.OnClick := @ActionPanel.OnAddActionClick;
 
   Self.Scroll := TLazScrollBox.CreateEx(Self.Root);
   Self.Scroll.Align := ELazAlign.Client;
@@ -272,9 +275,9 @@ begin
   Self.BreakIntervalEdit.OnKeyPress := @FormUtils.NumberField;
   Self.BreakLengthEdit.OnKeyPress := @FormUtils.NumberField;
   Self.SleepTimeEdit.OnKeyPress := @FormUtils.TimeField;
-  Self.BreakIntervalEdit.OnChange := @Self.EmitChanged;
-  Self.BreakLengthEdit.OnChange := @Self.EmitChanged;
-  Self.SleepTimeEdit.OnChange := @Self.EmitChanged;
+  Self.BreakIntervalEdit.OnChange := @ActionPanel.EmitChanged;
+  Self.BreakLengthEdit.OnChange := @ActionPanel.EmitChanged;
+  Self.SleepTimeEdit.OnChange := @ActionPanel.EmitChanged;
 
   Self.RebuildCards([]);
 end;

@@ -18,6 +18,9 @@ type
     OnGenerate: TLazNotifyEvent;
   end;
 
+var
+  AIPlannerPanel: TAIPlannerPanel;
+
 procedure TAIPlannerPanel.HandleGenerateClick(sender: TLazObject);
 begin
   WriteLn('AI generate placeholder: ' + Self.DescriptionMemo.Text.Trim());
@@ -39,6 +42,6 @@ begin
   Self.BtnGenerate.Align := ELazAlign.Right;
   Self.BtnGenerate.BorderSpacing.Top := 8;
   Self.BtnGenerate.BorderSpacing.Right := 8;
-  Self.BtnGenerate.OnClick := @Self.HandleGenerateClick;
+  Self.BtnGenerate.OnClick := @AIPlannerPanel.HandleGenerateClick;
 end;
 

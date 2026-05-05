@@ -847,3 +847,42 @@ Reworked the GUI wiring to follow the same helper-record pattern used by:
     - `Self.Run();`
 
 This aligns WaspForge event wiring with the helper-record method-pointer pattern shown in WaspLib form helpers.
+
+---
+
+## Global handler-instance pass (final GUI pointer shape fix)
+
+Applied the strict WaspLib callback binding pattern across GUI modules:
+
+- `gui/action_panel.simba`
+  - Global instance:
+    - `var ActionPanel: TActionPanel;`
+  - All event assignments now use `@ActionPanel.<Handler>`
+  - Removed prior helper variable naming.
+
+- `gui/code_panel.simba`
+  - Global instance:
+    - `var CodePanel: TCodePanel;`
+  - Event assignments now use:
+    - `CodePanel.BtnCopy.OnClick := @CodePanel.OnCopyClick;`
+    - `CodePanel.BtnSave.OnClick := @CodePanel.OnSaveClick;`
+
+- `gui/ai_planner_panel.simba`
+  - Global instance:
+    - `var AIPlannerPanel: TAIPlannerPanel;`
+  - Generate button event now uses:
+    - `@AIPlannerPanel.HandleGenerateClick`
+
+- `gui/forge_form.simba`
+  - Global instance:
+    - `var Forge: TWaspForge;`
+  - All forge event assignments now use `@Forge.<Handler>` (no `@Self` handler binding).
+  - Internal references switched to global panel instances:
+    - `ActionPanel`, `CodePanel`, `AIPlannerPanel`.
+
+- `WaspForge.simba`
+  - Removed duplicate local `Forge` variable; entry now uses global `Forge` from `gui/forge_form.simba`.
+
+Validation:
+
+- Search `@Self.` across `WaspForge/gui/*.simba` now returns **zero matches**.
