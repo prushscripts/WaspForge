@@ -12,6 +12,9 @@ type
     StatusLbl:  TLazLabel;
   end;
 
+var
+  CodePanel: TCodePanel;
+
 procedure TCodePanel.OnCopyClick(sender: TLazObject);
 begin
   WriteLn('Copy clicked - clipboard API not yet wired');
@@ -46,7 +49,4 @@ begin
   CodePanel.StatusLbl := TLazLabel.CreateEx(parent, 'Lines: 0', '', 0, 0);
   CodePanel.StatusLbl.Align  := ELazAlign.Bottom;
 end;
-
-var
-  CodePanel: TCodePanel;
 

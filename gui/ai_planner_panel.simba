@@ -10,6 +10,9 @@ type
     BtnGenerate: TLazButton;
   end;
 
+var
+  AIPlannerPanel: TAIPlannerPanel;
+
 procedure TAIPlannerPanel.OnGenerateClick(sender: TLazObject);
 begin
   WriteLn('AI Generate clicked: ' + AIPlannerPanel.Memo.Text);
@@ -27,7 +30,4 @@ begin
   AIPlannerPanel.BtnGenerate.Align   := ELazAlign.Bottom;
   AIPlannerPanel.BtnGenerate.OnClick := @AIPlannerPanel.OnGenerateClick;
 end;
-
-var
-  AIPlannerPanel: TAIPlannerPanel;
 
