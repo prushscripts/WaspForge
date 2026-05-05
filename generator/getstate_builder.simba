@@ -28,7 +28,7 @@ begin
   for i := 1 to Length(scriptName) do
   begin
     ch := scriptName[i];
-    if ch.IsNumeric or ch.IsAlphabetic then
+    if ch.IsNumeric or ch.IsAlpha then
     begin
       if nextUpper then
         Result += UpperCase(ch)
@@ -119,5 +119,6 @@ begin
   Result += '  Exit(' + enumTypeName + '.END_SCRIPT);' + LINE_SEP;
   Result += 'end;';
 end;
+
 
 

@@ -85,7 +85,7 @@ begin
   for i := 1 to Length(value) do
   begin
     ch := value[i];
-    if ch.IsNumeric or ch.IsAlphabetic then
+    if ch.IsNumeric or ch.IsAlpha then
     begin
       if nextUpper then
         Result += UpperCase(ch)
@@ -232,5 +232,6 @@ begin
   Result += '  Script.Run();' + LINE_SEP;
   Result += 'end.';
 end;
+
 
 

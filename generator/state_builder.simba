@@ -20,7 +20,7 @@ begin
   begin
     ch := scriptName[i];
 
-    if ch.IsNumeric or ch.IsAlphabetic then
+    if ch.IsNumeric or ch.IsAlpha then
     begin
       if nextUpper then
         Result += UpperCase(ch)
@@ -84,4 +84,5 @@ begin
 
   Result += '  );';
 end;
+
 

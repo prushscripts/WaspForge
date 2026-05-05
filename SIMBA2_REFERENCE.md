@@ -132,6 +132,19 @@ Use these instead:
 - path ops: `PathNormalize`, `PathExtractDir`, `PathJoin`, etc.
 - current context: `{$MACRO DIR}` and/or `SCRIPT_FILE`
 
+## String Methods (called as methods not functions)
+From `Simba/Tests/string.simba`, string and char operations are method-based in Simba 2.0:
+- Classification: `.IsNumeric`, `.IsInteger`, `.IsFloat`, `.IsAlphaNum`, `.IsAlpha`, `.IsLower`, `.IsUpper`
+- Editing: `.Insert(...)`, `.DeleteIndex(...)`, `.DeleteRange(...)`, `.Copy()`, `.CopyRange(...)`
+- Extract/parse: `.ExtractInteger()`, `.ExtractFloat()`, `.Extract(...)`, `.ExtractNumbers()`, `.ToInt()`, `.ToFloat()`, `.ToBoolean`
+- Case/convert: `.ToLower`, `.ToUpper`, `.SwapCase`, `.Capitalize`, `.CapitalizeWords`, `.ToBytes`
+- Split/join: `.Partition(...)`, `.Split(...)`, `.SplitLines()`, `String(' ').Join([...])`, `#32.Join([...])`
+- Accessors/props: `.Pop`, `.First`, `.Last`, `.Low`, `.High`, `.Length`, `.SetLength(...)`, `.Equals(...)`
+
+Audit rule for this repo:
+- Do **not** use standalone `IsAlphabetic(...)`, `IsAlphaNumeric(...)`, `IsNumeric(...)`, or `IsDigit(...)`.
+- Use method calls instead, e.g. `ch.IsAlpha`, `ch.IsNumeric`, `str.IsAlphaNum`.
+
 ## Record Methods
 Supported syntax in Simba 2.0:
 - `procedure TMyRecord.Setup();`
