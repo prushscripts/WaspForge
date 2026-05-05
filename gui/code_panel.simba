@@ -37,19 +37,29 @@ end;
 procedure TCodePanel.Setup(parent: TLazTabSheet);
 begin
   CodePanel.Memo := TLazMemo.CreateEx(parent, '', '', 0, 0, 500, 500);
+  CodePanel.Memo.Color    := WF_CODE_BG;
+  CodePanel.Memo.Font.Color := WF_CODE_TEXT;
+  CodePanel.Memo.Font.Name := 'Courier New';
+  CodePanel.Memo.Font.Size := 10;
   CodePanel.Memo.ReadOnly := True;
   CodePanel.Memo.WordWrap := False;
   CodePanel.Memo.Align    := ELazAlign.Client;
 
   CodePanel.BtnCopy := TLazButton.CreateEx(parent, 'Copy', '', 0, 0, 80, 28);
+  CodePanel.BtnCopy.Color := WF_BG_PANEL;
+  CodePanel.BtnCopy.Font.Color := WF_TEXT_WHITE;
   CodePanel.BtnCopy.Align    := ELazAlign.Bottom;
   CodePanel.BtnCopy.OnClick  := @CodePanel.OnCopyClick;
 
   CodePanel.BtnSave := TLazButton.CreateEx(parent, 'Save .simba', '', 0, 0, 100, 28);
+  CodePanel.BtnSave.Color := WF_ACCENT;
+  CodePanel.BtnSave.Font.Color := WF_TEXT_WHITE;
+  CodePanel.BtnSave.Font.Style := [ELazFontStyles.Bold];
   CodePanel.BtnSave.Align    := ELazAlign.Bottom;
   CodePanel.BtnSave.OnClick  := @CodePanel.OnSaveClick;
 
   CodePanel.StatusLbl := TLazLabel.CreateEx(parent, 'Lines: 0', '', 0, 0);
+  CodePanel.StatusLbl.Font.Color := WF_TEXT_GRAY;
   CodePanel.StatusLbl.Align  := ELazAlign.Bottom;
 end;
 

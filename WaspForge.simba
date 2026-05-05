@@ -9,6 +9,7 @@
 {$I WaspForge/core/coord_library.simba}
 {$I WaspForge/core/code_generator.simba}
 {$I WaspForge/core/project_file.simba}
+{$I WaspForge/gui/theme.simba}
 {$I WaspForge/gui/action_panel.simba}
 {$I WaspForge/gui/code_panel.simba}
 {$I WaspForge/gui/ai_planner_panel.simba}

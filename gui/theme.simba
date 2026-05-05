@@ -1,0 +1,22 @@
+(*
+  WaspForge — shared GUI theme constants.
+*)
+{$DEFINE WF_THEME_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
+
+const
+  WF_BG_DARK: TColor    = $1A1A2E;
+  WF_BG_PANEL: TColor   = $16213E;
+  WF_BG_CARD: TColor    = $0F3460;
+  WF_ACCENT: TColor     = $E94560;
+  WF_ACCENT2: TColor    = $533483;
+  WF_TEXT_WHITE: TColor = $FFFFFF;
+  WF_TEXT_GRAY: TColor  = $A0A0B0;
+  WF_GREEN: TColor      = $00AA44;
+  WF_YELLOW: TColor     = $CCAA00;
+  WF_RED: TColor        = $CC2200;
+  WF_CODE_BG: TColor    = $0D1117;
+  WF_CODE_TEXT: TColor  = $58A6FF;
+

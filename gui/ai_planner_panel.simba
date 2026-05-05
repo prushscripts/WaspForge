@@ -26,10 +26,15 @@ begin
   AIPlannerPanel.Memo := TLazMemo.CreateEx(parent,
     'Describe your script (e.g. chop willows at Draynor, bank logs)...',
     '', 0, 0, 400, 60);
+  AIPlannerPanel.Memo.Color := WF_BG_PANEL;
+  AIPlannerPanel.Memo.Font.Color := WF_TEXT_WHITE;
   AIPlannerPanel.Memo.Align := ELazAlign.Bottom;
 
   AIPlannerPanel.BtnGenerate := TLazButton.CreateEx(parent,
     'Generate Script', '', 0, 0, 120, 28);
+  AIPlannerPanel.BtnGenerate.Color := WF_ACCENT;
+  AIPlannerPanel.BtnGenerate.Font.Color := WF_TEXT_WHITE;
+  AIPlannerPanel.BtnGenerate.Font.Style := [ELazFontStyles.Bold];
   AIPlannerPanel.BtnGenerate.Align   := ELazAlign.Bottom;
   AIPlannerPanel.BtnGenerate.OnClick := @AIPlannerPanel.OnGenerateClick;
 end;

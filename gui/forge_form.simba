@@ -17,6 +17,8 @@ var
   tab: TLazTabSheet;
 begin
   Self.Setup('WaspForge');
+  Self.Form.Color := WF_BG_DARK;
+  Self.Form.SetChildsFontColor(WF_TEXT_WHITE);
 
   tab := Self.CreateTab('Script Builder');
 
