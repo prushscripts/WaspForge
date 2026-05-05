@@ -9,9 +9,8 @@
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I types.simba}
 {$ENDIF}
-{$IFNDEF WF_PATHS_INCLUDED}
-  {$I paths.simba}
-{$ENDIF}
+const
+  WF_COORDS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'coords.json';
 
 function WFCoordSlice(str: String; fromIdx, toIdx: Integer): String;
 begin
@@ -61,7 +60,7 @@ var
   entry: TCoordEntry;
 begin
   if path.Trim() = '' then
-    path := WF_DataPath('coords.json');
+    path := WF_COORDS_JSON;
 
   Self.Path := path;
   Self.Entries := [];
@@ -97,7 +96,7 @@ var
   entry: TCoordEntry;
 begin
   if Self.Path.Trim() = '' then
-    Self.Path := WF_DataPath('coords.json');
+    Self.Path := WF_COORDS_JSON;
 
   json := new TJSONArray();
   for entry in Self.Entries do
@@ -186,7 +185,7 @@ var
   coordName: String;
 begin
   if Self.Path.Trim() = '' then
-    Self.Path := WF_DataPath('coords.json');
+    Self.Path := WF_COORDS_JSON;
 
   for input in action.Inputs do
   begin
@@ -204,4 +203,6 @@ begin
 
   Self.Save();
 end;
+
+
 

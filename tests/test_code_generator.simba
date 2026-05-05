@@ -165,7 +165,7 @@ var
   catalog: TActionsCatalog;
   generator: TCodeGenerator;
 begin
-  catalog.Load(WF_DataPath('actions.json'));
+  catalog.Load(WF_ACTIONS_JSON);
   if catalog.LastError <> '' then
   begin
     WriteLn('Catalog load failed: ' + catalog.LastError);
@@ -181,3 +181,4 @@ begin
   WriteLn('');
   WriteLn('Copy each generated block into a new Simba tab to verify it compiles.');
 end.
+

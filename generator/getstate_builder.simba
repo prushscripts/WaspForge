@@ -15,9 +15,6 @@
 {$IFNDEF WF_TEMPLATES_INCLUDED}
   {$I templates.simba}
 {$ENDIF}
-{$IFNDEF WF_PATHS_INCLUDED}
-  {$I ../core/paths.simba}
-{$ENDIF}
 
 function WFGetStateSanitizeName(scriptName: String): String;
 var
@@ -67,7 +64,7 @@ var
   stateName: String;
 begin
   enumTypeName := 'E' + WFGetStateSanitizeName(scriptName) + 'State';
-  catalog.Load(WF_DataPath('actions.json'));
+  catalog.Load(WF_ACTIONS_JSON);
 
   for action in actions do
     if action.Enabled then
@@ -122,4 +119,5 @@ begin
   Result += '  Exit(' + enumTypeName + '.END_SCRIPT);' + LINE_SEP;
   Result += 'end;';
 end;
+
 

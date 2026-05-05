@@ -10,6 +10,9 @@
   {$I types.simba}
 {$ENDIF}
 
+const
+  WF_ACTIONS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'actions.json';
+
 type
   TCatalogEntry = record
     ID:                String;
@@ -60,6 +63,9 @@ var
   inputField: TForgeInput;
   inputType: EInputType;
 begin
+  if path.Trim() = '' then
+    path := WF_ACTIONS_JSON;
+
   Self.Path := path;
   Self.LastError := '';
   Self.Entries := [];
@@ -175,4 +181,6 @@ begin
       Exit(True);
   Result := False;
 end;
+
+
 

@@ -9,9 +9,6 @@
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I types.simba}
 {$ENDIF}
-{$IFNDEF WF_PATHS_INCLUDED}
-  {$I paths.simba}
-{$ENDIF}
 {$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
   {$I actions_catalog.simba}
 {$ENDIF}
@@ -137,7 +134,7 @@ var
   constName, fieldName, resolved: String;
 begin
   Self.LastError := '';
-  Self.Catalog.Load(WF_DataPath('actions.json'));
+  Self.Catalog.Load(WF_ACTIONS_JSON);
   if Self.Catalog.LastError <> '' then
   begin
     Self.LastError := Self.Catalog.LastError;
@@ -235,4 +232,5 @@ begin
   Result += '  Script.Run();' + LINE_SEP;
   Result += 'end.';
 end;
+
 

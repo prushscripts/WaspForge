@@ -7,3 +7,7 @@
   {$I ../core/types.simba}
 {$ENDIF}
 
+const
+  WF_CHUNK_BOUNDS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'chunk_bounds.json';
+
+

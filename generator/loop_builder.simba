@@ -15,9 +15,6 @@
 {$IFNDEF WF_TEMPLATES_INCLUDED}
   {$I templates.simba}
 {$ENDIF}
-{$IFNDEF WF_PATHS_INCLUDED}
-  {$I ../core/paths.simba}
-{$ENDIF}
 
 function WFLoopSanitizeScriptName(scriptName: String): String;
 var
@@ -127,7 +124,7 @@ var
   terminalCondition, stepTitle, procName: String;
   idx: Integer;
 begin
-  catalog.Load(WF_DataPath('actions.json'));
+  catalog.Load(WF_ACTIONS_JSON);
 
   Result := 'procedure TScript.Solve();' + LINE_SEP;
   Result += 'var' + LINE_SEP;
@@ -179,4 +176,5 @@ begin
   Result += '  end;' + LINE_SEP;
   Result += 'end;';
 end;
+
 
