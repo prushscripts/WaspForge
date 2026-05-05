@@ -130,7 +130,7 @@ begin
   Self.Entries[idx].Name := name;
   Self.Entries[idx].Point := point;
   Self.Entries[idx].ChunkName := chunkName.Trim();
-  Self.Entries[idx].AddedAt := GetTimeStamp(TIME_DATE);
+  Self.Entries[idx].AddedAt := GetTimeStamp(TIME_SHORT);
 end;
 
 function TCoordLibrary.Find(name: String; out point: TPoint): Boolean;

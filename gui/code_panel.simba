@@ -1,86 +1,52 @@
 (*
-  WaspForge — live generated code preview panel.
+  WaspForge — Code preview panel (right side).
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_CODE_PANEL_INCLUDED}
-{$IFNDEF WL_OSRS}
-  {$I WaspLib/osrs.simba}
-{$ENDIF}
-{$IFNDEF WF_TYPES_INCLUDED}
-  {$I ../core/types.simba}
-{$ENDIF}
-{$IFNDEF WF_CODE_GENERATOR_INCLUDED}
-  {$I ../core/code_generator.simba}
-{$ENDIF}
 
 type
   TCodePanel = record
-    Root: TLazPanel;
-    Preview: TLazMemo;
-    BtnCopy: TLazButton;
-    BtnSave: TLazButton;
-    Status: TLazLabel;
-    LastCode: String;
+    Memo:       TLazMemo;
+    BtnCopy:    TLazButton;
+    BtnSave:    TLazButton;
+    StatusLbl:  TLazLabel;
   end;
 
-var
-  CodePanel: TCodePanel;
-
-procedure TCodePanel.OnCopyClick(_sender: TLazObject);
+procedure TCodePanel.OnCopyClick(sender: TLazObject);
 begin
-  SetClipBoard(Self.Preview.Text);
+  WriteLn('Copy clicked - clipboard API not yet wired');
 end;
 
-procedure TCodePanel.OnSaveClick(_sender: TLazObject);
-var
-  outPath: String;
+procedure TCodePanel.OnSaveClick(sender: TLazObject);
 begin
-  outPath := {$MACRO DIR} + '..' + PATH_SEP + 'output' + PATH_SEP + 'generated_script.simba';
-  if not DirExists({$MACRO DIR} + '..' + PATH_SEP + 'output') then
-    DirCreate({$MACRO DIR} + '..' + PATH_SEP + 'output');
-  FileWrite(outPath, Self.Preview.Text);
-  WriteLn('Saved generated script: ' + outPath);
-end;
-
-procedure TCodePanel.Setup(owner: Pointer);
-var
-  actionsBar: TLazPanel;
-begin
-  Self.Root := TLazPanel.CreateEx(owner);
-  Self.Root.Align := ELazAlign.Client;
-  Self.Root.BorderSpacing.Around := 4;
-  Self.Root.Caption := '';
-
-  Self.Preview := TLazMemo.CreateEx(Self.Root);
-  Self.Preview.Align := ELazAlign.Client;
-  Self.Preview.ReadOnly := True;
-  Self.Preview.ScrollBars := ELazScrollStyle.Vertical;
-  Self.Preview.WordWrap := False;
-
-  actionsBar := TLazPanel.CreateEx(Self.Root, 0, 0, 0, 34);
-  actionsBar.Align := ELazAlign.Bottom;
-  actionsBar.BevelOuter := ELazPanelBevel.None;
-  actionsBar.Caption := '';
-
-  Self.BtnCopy := TLazButton.CreateEx(actionsBar, 'Copy', '', 8, 5, 80, 24);
-  Self.BtnSave := TLazButton.CreateEx(actionsBar, 'Save .simba', '', 94, 5, 100, 24);
-  Self.Status := TLazLabel.CreateEx(actionsBar, 'Lines: 0 | Actions: 0 | 0 GREEN 0 RED', '', 202, 9, 420, 20);
-
-  Self.BtnCopy.OnClick := @CodePanel.OnCopyClick;
-  Self.BtnSave.OnClick := @CodePanel.OnSaveClick;
-end;
-
-procedure TCodePanel.SetStatus(linesCount, actionsCount, greenCount, redCount: Integer);
-begin
-  Self.Status.Caption :=
-    'Lines: ' + ToStr(linesCount) +
-    ' | Actions: ' + ToStr(actionsCount) +
-    ' | ' + ToStr(greenCount) + ' GREEN ' + ToStr(redCount) + ' RED';
+  WriteLn('Save clicked');
 end;
 
 procedure TCodePanel.SetCode(code: String);
 begin
-  Self.LastCode := code;
-  Self.Preview.Text := code;
+  CodePanel.Memo.Text := code;
+  CodePanel.StatusLbl.Caption := 'Lines: ' + ToStr(code.CountOf(LINE_SEP) + 1);
 end;
+
+procedure TCodePanel.Setup(parent: TLazTabSheet);
+begin
+  CodePanel.Memo := TLazMemo.CreateEx(parent, '', '', 0, 0, 500, 500);
+  CodePanel.Memo.ReadOnly := True;
+  CodePanel.Memo.WordWrap := False;
+  CodePanel.Memo.Align    := ELazAlign.Client;
+
+  CodePanel.BtnCopy := TLazButton.CreateEx(parent, 'Copy', '', 0, 0, 80, 28);
+  CodePanel.BtnCopy.Align    := ELazAlign.Bottom;
+  CodePanel.BtnCopy.OnClick  := @CodePanel.OnCopyClick;
+
+  CodePanel.BtnSave := TLazButton.CreateEx(parent, 'Save .simba', '', 0, 0, 100, 28);
+  CodePanel.BtnSave.Align    := ELazAlign.Bottom;
+  CodePanel.BtnSave.OnClick  := @CodePanel.OnSaveClick;
+
+  CodePanel.StatusLbl := TLazLabel.CreateEx(parent, 'Lines: 0', '', 0, 0);
+  CodePanel.StatusLbl.Align  := ELazAlign.Bottom;
+end;
+
+var
+  CodePanel: TCodePanel;
 

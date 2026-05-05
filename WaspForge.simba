@@ -1,35 +1,23 @@
 (*
-  WaspForge — main entry ScriptForm launcher (wired in later milestones).
-  Part of the WaspForge script factory system.
+  WaspForge — AI-powered script factory for WaspScripts 2.0
+  Run this file in Simba to open the WaspForge GUI.
 *)
 {$I WaspLib/osrs.simba}
 
-{$I core/types.simba}
-{$I core/actions_catalog.simba}
-{$I core/project_file.simba}
-{$I core/code_generator.simba}
-{$I gui/action_card.simba}
-{$I gui/code_panel.simba}
-{$I gui/action_panel.simba}
-{$I gui/ai_planner_panel.simba}
-{$I gui/forge_form.simba}
+{$I WaspForge/core/types.simba}
+{$I WaspForge/core/actions_catalog.simba}
+{$I WaspForge/core/coord_library.simba}
+{$I WaspForge/core/code_generator.simba}
+{$I WaspForge/core/project_file.simba}
+{$I WaspForge/gui/action_panel.simba}
+{$I WaspForge/gui/code_panel.simba}
+{$I WaspForge/gui/ai_planner_panel.simba}
+{$I WaspForge/gui/forge_form.simba}
 
 var
   ForgeForm: TScriptForm;
 
-procedure TScriptForm.OnStart(sender: TLazObject); override;
 begin
-  inherited();
-end;
-
-procedure TScriptForm.Init();
-begin
-  Self.Setup('WaspForge');
-  Forge.Setup(Self);
-  Self.Run();
-end;
-
-begin
-  ForgeForm.Init();
+  ForgeForm.InitForge();
 end.
 
