@@ -90,12 +90,12 @@ begin
   WFCodePanel.SetStatus(linesCount, Length(WFProject.Actions), greenCount, redCount);
 end;
 
-procedure TWaspForge.OnAnyStateChanged(sender: TLazObject);
+procedure TWaspForge.OnAnyStateChanged(_sender: TLazObject);
 begin
   Self.UpdateCodePreview();
 end;
 
-procedure TWaspForge.OnChunkFilterChanged(sender: TLazObject);
+procedure TWaspForge.OnChunkFilterChanged(_sender: TLazObject);
 var
   parser, entry: TJSONParser;
   i: Integer;
@@ -118,7 +118,7 @@ begin
   end;
 end;
 
-procedure TWaspForge.OnChunkSelected(sender: TLazObject);
+procedure TWaspForge.OnChunkSelected(_sender: TLazObject);
 var
   value: String;
 begin
@@ -130,7 +130,7 @@ begin
   Self.UpdateCodePreview();
 end;
 
-procedure TWaspForge.OnModeChanged(sender: TLazObject);
+procedure TWaspForge.OnModeChanged(_sender: TLazObject);
 begin
   if WFModeCombo.ItemIndex = 1 then
     WFProject.Mode := EForgeMode.SEQUENTIAL_QUEST
@@ -139,14 +139,14 @@ begin
   Self.UpdateCodePreview();
 end;
 
-procedure TWaspForge.OnSaveProject(sender: TLazObject);
+procedure TWaspForge.OnSaveProject(_sender: TLazObject);
 begin
   Self.SyncProjectFromUI();
   WFProject.Save(WF_DEFAULT_PROJECT);
   WriteLn('Saved project: ' + WF_DEFAULT_PROJECT);
 end;
 
-procedure TWaspForge.OnLoadProject(sender: TLazObject);
+procedure TWaspForge.OnLoadProject(_sender: TLazObject);
 begin
   if not WFProject.Load(WF_DEFAULT_PROJECT) then
     Exit;
@@ -159,7 +159,7 @@ begin
   Self.UpdateCodePreview();
 end;
 
-procedure TWaspForge.OnStart(sender: TLazObject); override;
+procedure TWaspForge.OnStart(_sender: TLazObject); override;
 begin
   inherited();
 end;

@@ -116,7 +116,7 @@ begin
   Result += 'end;';
 end;
 
-function BuildQuestSolve(actions: TForgeActionArray; questName: String): String;
+function BuildQuestSolve(actions: TForgeActionArray; _questName: String): String;
 var
   catalog: TActionsCatalog;
   action: TForgeAction;

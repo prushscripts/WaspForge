@@ -23,12 +23,12 @@ type
     LastCode: String;
   end;
 
-procedure TCodePanel.OnCopyClick(sender: TLazObject);
+procedure TCodePanel.OnCopyClick(_sender: TLazObject);
 begin
   SetClipBoard(Self.Preview.Text);
 end;
 
-procedure TCodePanel.OnSaveClick(sender: TLazObject);
+procedure TCodePanel.OnSaveClick(_sender: TLazObject);
 var
   outPath: String;
 begin

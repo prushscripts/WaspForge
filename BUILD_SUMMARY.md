@@ -756,3 +756,44 @@ Performed a one-pass audit across all `WaspForge/*.simba` files for:
   - `core/coord_library.simba` -> `json.Format(...)`
   - `core/project_file.simba` -> `root.Format(...)`
   - This method usage is verified by `Simba/Tests/json.simba`.
+
+---
+
+## Event handler signature audit (Simba 2.0 form callbacks)
+
+Performed a full search across `WaspForge/*.simba` for:
+
+- `.OnChange :=`
+- `.OnClick :=`
+- `.OnSelect :=`
+- `.OnEnter :=`
+- `.OnExit :=`
+- `.OnKeyPress :=`
+- `.OnMouseMove :=`
+
+### Result
+
+All handlers referenced by UI event assignments now use Simba-compatible handler signatures:
+
+- `procedure T...Handler(sender: TLazObject);`
+
+No event assignment targets a `TObject` or parameterless handler.
+
+### Warning cleanup done during pass
+
+- `generator/loop_builder.simba`
+  - Renamed unused `questName` parameter to `_questName` in:
+    - `function BuildQuestSolve(actions: TForgeActionArray; _questName: String): String;`
+- `gui/forge_form.simba`
+  - Renamed unused event sender parameters to `_sender` in:
+    - `OnAnyStateChanged`
+    - `OnChunkFilterChanged`
+    - `OnChunkSelected`
+    - `OnModeChanged`
+    - `OnSaveProject`
+    - `OnLoadProject`
+    - `OnStart`
+- `gui/code_panel.simba`
+  - Renamed unused event sender parameters to `_sender` in:
+    - `OnCopyClick`
+    - `OnSaveClick`
