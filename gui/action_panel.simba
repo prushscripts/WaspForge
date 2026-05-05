@@ -95,6 +95,7 @@ end;
 
 procedure TActionPanel.OnAddActionClick(sender: TLazObject);
 begin
+  ActionPanel.AddCard(ActionPanel.ScrollBox);
   if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
 end;
 
