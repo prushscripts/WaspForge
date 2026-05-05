@@ -20,6 +20,8 @@ Completed implementation steps: **1 through 14**
 
 **Manual check:** Run `tests/test_code_generator.simba` in Simba 2.0 and confirm the `TCTS2ColorArray` compile error is gone.
 
+**`core/paths.simba`:** Simba 2.0 has no `ScriptPath`. Resolution uses `ExpandFileName({$MACRO DIR} + '..' + … + 'data' + …)` (same `{$MACRO DIR}` pattern as `WaspLib/tools/run_tests.simba`), anchored on this file’s `core/` directory so `data/actions.json` always resolves under `WaspForge/data/`.
+
 ---
 
 ## What was completed in this update

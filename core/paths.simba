@@ -1,5 +1,8 @@
 (*
-  WaspForge — resolve paths under data/ whether the entry script is in WaspForge/ or WaspForge/tests/.
+  WaspForge — resolve paths under data/ for the checked-out tree.
+
+  Simba 2.0 does not expose ScriptPath. This unit lives in core/, so
+  {$MACRO DIR} is always .../WaspForge/core/ and ../data/ is the catalog JSON root.
 *)
 {$DEFINE WF_PATHS_INCLUDED}
 {$IFNDEF WL_OSRS}
@@ -7,27 +10,7 @@
 {$ENDIF}
 
 function WF_DataPath(const FileName: String): String;
-var
-  base: String;
-  direct: String;
-  parentData: String;
 begin
-  base := ScriptPath;
-  if base = '' then
-    base := '.' + PATH_SEP
-  else if not base.EndsWith(PATH_SEP) then
-    base := base + PATH_SEP;
-
-  direct := base + 'data' + PATH_SEP + FileName;
-  parentData := ExpandFileName(base + '..' + PATH_SEP + 'data' + PATH_SEP + FileName);
-
-  if FileExists(direct) then
-    Exit(direct);
-  if FileExists(parentData) then
-    Exit(parentData);
-
-  if base.ToLower().EndsWith('tests' + PATH_SEP) or base.ToLower().EndsWith('tests/') then
-    Result := parentData
-  else
-    Result := direct;
+  Result := {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + FileName;
 end;
+
