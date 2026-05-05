@@ -28,7 +28,7 @@ end;
 procedure TCodePanel.SetCode(code: String);
 begin
   CodePanel.Memo.Text := code;
-  CodePanel.StatusLbl.Caption := 'Lines: ' + ToStr(code.CountOf(LINE_SEP) + 1);
+  CodePanel.StatusLbl.Caption := 'Lines: ' + ToStr(code.SplitLines().Length);
 end;
 
 procedure TCodePanel.Setup(parent: TLazTabSheet);
