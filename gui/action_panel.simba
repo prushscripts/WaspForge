@@ -24,13 +24,12 @@ type
     ScrollBox:         TLazScrollBox;
     ScriptNameEdit:    TLazEdit;
     BtnAddAction:      TLazButton;
+    ChunkFilterEdit:   TLazEdit;
+    ChunkListBox:      TLazListBox;
     BreakIntervalEdit: TLazEdit;
     BreakLengthEdit:   TLazEdit;
     SleepTimeEdit:     TLazEdit;
-    ChunkFilterEdit:   TLazEdit;
-    ChunkListBox:      TLazListBox;
     Cards:             array of TActionCardRef;
-    Project:           TForgeProject;
     Catalog:           TActionsCatalog;
     OnChanged:         procedure(sender: TLazObject);
   end;
@@ -56,7 +55,8 @@ begin
 end;
 
 procedure TActionPanel.OnActionTypeChanged(sender: TLazObject);
-var i: Integer;
+var
+  i: Integer;
 begin
   for i := 0 to High(ActionPanel.Cards) do
     ActionPanel.UpdateTrafficLight(i);
@@ -65,7 +65,8 @@ begin
 end;
 
 procedure TActionPanel.OnInputChanged(sender: TLazObject);
-var i: Integer;
+var
+  i: Integer;
 begin
   for i := 0 to High(ActionPanel.Cards) do
     ActionPanel.UpdateTrafficLight(i);
@@ -76,101 +77,163 @@ end;
 procedure TActionPanel.OnGrabClick(sender: TLazObject);
 begin
   WriteLn('Grab: stand on tile in game then press Grab');
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
 end;
 
 procedure TActionPanel.OnMoveUpClick(sender: TLazObject);
 begin
-  if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
 end;
 
 procedure TActionPanel.OnMoveDownClick(sender: TLazObject);
 begin
-  if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
 end;
 
 procedure TActionPanel.OnDeleteClick(sender: TLazObject);
 begin
-  if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
 end;
 
 procedure TActionPanel.OnAddActionClick(sender: TLazObject);
 begin
   ActionPanel.AddCard(ActionPanel.ScrollBox);
-  if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
 end;
 
 procedure TActionPanel.EmitChanged(sender: TLazObject);
 begin
-  if @ActionPanel.OnChanged <> nil then ActionPanel.OnChanged(sender);
+  if @ActionPanel.OnChanged <> nil then
+    ActionPanel.OnChanged(sender);
+end;
+
+procedure TActionPanel.Setup(parent: TLazPanel);
+var
+  lbl: TLazLabel;
+begin
+  // Script name - full width with label above
+  lbl := TLazLabel.CreateEx(parent, 'Script Name:', '', 8, 8);
+  ActionPanel.ScriptNameEdit := TLazEdit.CreateEx(parent, '', '', 8, 26, 280);
+  ActionPanel.ScriptNameEdit.OnChange := @ActionPanel.EmitChanged;
+
+  // Scrollable card area - takes up most of the space
+  ActionPanel.ScrollBox := TLazScrollBox.CreateEx(parent);
+  ActionPanel.ScrollBox.Left   := 0;
+  ActionPanel.ScrollBox.Top    := 56;
+  ActionPanel.ScrollBox.Width  := 296;
+  ActionPanel.ScrollBox.Height := 440;
+
+  // Add Action button below scroll area
+  ActionPanel.BtnAddAction := TLazButton.CreateEx(parent, '+ Add Action', '', 8, 504, 140, 26);
+  ActionPanel.BtnAddAction.OnClick := @ActionPanel.OnAddActionClick;
+
+  // Chunk search below add button
+  lbl := TLazLabel.CreateEx(parent, 'Map Chunk:', '', 8, 538);
+  ActionPanel.ChunkFilterEdit := TLazEdit.CreateEx(parent, '', '', 8, 555, 200);
+  ActionPanel.ChunkFilterEdit.OnChange := @ActionPanel.EmitChanged;
+  ActionPanel.ChunkListBox := TLazListBox.CreateEx(parent, '', '', 8, 580, 280, 80);
 end;
 
 procedure TActionPanel.AddCard(parent: TLazScrollBox);
 var
-  card:   TActionCardRef;
-  panel:  TLazPanel;
-  light:  TLazPanel;
-  combo:  TLazComboBox;
-  btnUp:  TLazButton;
-  btnDn:  TLazButton;
-  btnDel: TLazButton;
-  edit:   TLazEdit;
-  btnGrb: TLazButton;
+  card:    TActionCardRef;
+  panel:   TLazPanel;
+  light:   TLazPanel;
+  combo:   TLazComboBox;
+  btnUp:   TLazButton;
+  btnDn:   TLazButton;
+  btnDel:  TLazButton;
+  edit:    TLazEdit;
+  btnGrb:  TLazButton;
+  lbl:     TLazLabel;
+  i, j:    Integer;
+  cardTop: Integer;
+  keyA:    String;
+  keyB:    String;
+  idxs:    array of Integer;
+  tmpIdx:  Integer;
 begin
+  // Calculate vertical position for new card
+  cardTop := Length(ActionPanel.Cards) * 90;
+
   panel := TLazPanel.CreateEx(parent);
-  panel.Height := 80;
-  panel.Align  := ELazAlign.Top;
-  card.Panel   := panel;
+  panel.SetBounds(2, cardTop, 278, 86);
+  panel.BevelOuter := ELazPanelBevel.Single;
+  card.Panel := panel;
 
-  light        := TLazPanel.CreateEx(panel);
-  light.Width  := 12;
-  light.Height := 12;
-  light.Left   := 4;
-  light.Top    := 4;
-  light.Color  := $CC2200;
-  card.Light   := light;
+  // Traffic light - colored square
+  light := TLazPanel.CreateEx(panel);
+  light.SetBounds(4, 4, 14, 14);
+  light.Color := $0000CC;
+  light.BevelOuter := ELazPanelBevel.None;
+  card.Light := light;
 
-  combo          := TLazComboBox.CreateEx(panel, 'Select action', '', 20, 4, 160);
+  // Action type combo - populated from catalog
+  combo := TLazComboBox.CreateEx(panel, '', '', 22, 2, 180);
+  combo.Items.Add('-- Select Action --');
+
+  // Add all catalog actions by displayName sorted by category/displayName
+  if Length(ActionPanel.Catalog.Entries) > 0 then
+  begin
+    SetLength(idxs, Length(ActionPanel.Catalog.Entries));
+    for i := 0 to High(ActionPanel.Catalog.Entries) do
+      idxs[i] := i;
+
+    for i := 0 to High(ActionPanel.Catalog.Entries) - 1 do
+      for j := i + 1 to High(ActionPanel.Catalog.Entries) do
+      begin
+        keyA := LowerCase(ActionPanel.Catalog.Entries[idxs[i]].Category + '|' +
+                          ActionPanel.Catalog.Entries[idxs[i]].DisplayName);
+        keyB := LowerCase(ActionPanel.Catalog.Entries[idxs[j]].Category + '|' +
+                          ActionPanel.Catalog.Entries[idxs[j]].DisplayName);
+        if keyA > keyB then
+        begin
+          tmpIdx := idxs[i];
+          idxs[i] := idxs[j];
+          idxs[j] := tmpIdx;
+        end;
+      end;
+
+    for i := 0 to High(ActionPanel.Catalog.Entries) do
+      combo.Items.Add(ActionPanel.Catalog.Entries[idxs[i]].DisplayName);
+  end;
+
+  combo.ItemIndex := 0;
   combo.OnChange := @ActionPanel.OnActionTypeChanged;
   card.TypeCombo := combo;
 
-  btnUp          := TLazButton.CreateEx(panel, '▲', '', 185, 4, 24, 24);
-  btnUp.OnClick  := @ActionPanel.OnMoveUpClick;
-  card.BtnUp     := btnUp;
+  // Move up/down/delete buttons - ASCII only, no Unicode
+  btnUp := TLazButton.CreateEx(panel, 'Up', '', 206, 2, 30, 22);
+  btnUp.OnClick := @ActionPanel.OnMoveUpClick;
+  card.BtnUp := btnUp;
 
-  btnDn          := TLazButton.CreateEx(panel, '▼', '', 210, 4, 24, 24);
-  btnDn.OnClick  := @ActionPanel.OnMoveDownClick;
-  card.BtnDown   := btnDn;
+  btnDn := TLazButton.CreateEx(panel, 'Dn', '', 238, 2, 30, 22);
+  btnDn.OnClick := @ActionPanel.OnMoveDownClick;
+  card.BtnDown := btnDn;
 
-  btnDel          := TLazButton.CreateEx(panel, '✕', '', 236, 4, 24, 24);
-  btnDel.OnClick  := @ActionPanel.OnDeleteClick;
-  card.BtnDelete  := btnDel;
+  btnDel := TLazButton.CreateEx(panel, 'Del', '', 206, 26, 62, 22);
+  btnDel.OnClick := @ActionPanel.OnDeleteClick;
+  card.BtnDelete := btnDel;
 
-  edit            := TLazEdit.CreateEx(panel, 'Value:', '', 20, 36, 160);
-  edit.OnChange   := @ActionPanel.OnInputChanged;
+  // Value input field
+  lbl := TLazLabel.CreateEx(panel, 'Value:', '', 4, 30);
+  edit := TLazEdit.CreateEx(panel, '', '', 4, 48, 170);
+  edit.OnChange := @ActionPanel.OnInputChanged;
   SetLength(card.InputEdits, 1);
   card.InputEdits[0] := edit;
 
-  btnGrb          := TLazButton.CreateEx(panel, 'Grab', '', 185, 36, 50, 24);
-  btnGrb.OnClick  := @ActionPanel.OnGrabClick;
+  // Grab button
+  btnGrb := TLazButton.CreateEx(panel, 'Grab', '', 178, 48, 50, 22);
+  btnGrb.OnClick := @ActionPanel.OnGrabClick;
   SetLength(card.GrabBtns, 1);
   card.GrabBtns[0] := btnGrb;
 
   SetLength(ActionPanel.Cards, Length(ActionPanel.Cards) + 1);
   ActionPanel.Cards[High(ActionPanel.Cards)] := card;
-end;
-
-procedure TActionPanel.Setup(parent: TLazPanel);
-begin
-  ActionPanel.ScriptNameEdit := TLazEdit.CreateEx(parent, 'Script name:', '', 8, 8, 200);
-  ActionPanel.ScriptNameEdit.OnChange := @ActionPanel.EmitChanged;
-
-  ActionPanel.ScrollBox        := TLazScrollBox.CreateEx(parent);
-  ActionPanel.ScrollBox.Top    := 40;
-  ActionPanel.ScrollBox.Left   := 0;
-  ActionPanel.ScrollBox.Width  := 280;
-  ActionPanel.ScrollBox.Height := 300;
-
-  ActionPanel.BtnAddAction         := TLazButton.CreateEx(parent, '+ Add Action', '', 8, 345, 120, 28);
-  ActionPanel.BtnAddAction.OnClick := @ActionPanel.OnAddActionClick;
 end;
 

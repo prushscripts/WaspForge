@@ -22,15 +22,27 @@ begin
 end;
 
 procedure TAIPlannerPanel.Setup(parent: TLazTabSheet);
+var
+  instrLbl: TLazLabel;
 begin
-  AIPlannerPanel.Memo := TLazMemo.CreateEx(parent,
-    'Describe your script (e.g. chop willows at Draynor, bank logs)...',
-    '', 0, 0, 400, 60);
-  AIPlannerPanel.Memo.Align := ELazAlign.Client;
+  instrLbl := TLazLabel.CreateEx(parent,
+    'AI Script Planner' + LINE_SEP +
+    LINE_SEP +
+    'Describe what you want your script to do in plain English.' + LINE_SEP +
+    'Example: "Chop willow trees at Draynor Village, bank the logs, repeat."' + LINE_SEP +
+    LINE_SEP +
+    'The AI will generate the action states for your script automatically.' + LINE_SEP +
+    'You can then fill in coordinates using the Grab buttons on the Script Builder tab.' + LINE_SEP +
+    LINE_SEP +
+    'Enter your description below:',
+    '', 20, 20);
+
+  AIPlannerPanel.Memo := TLazMemo.CreateEx(parent, '', '', 20, 180, 700, 120);
+  AIPlannerPanel.Memo.Text := '';
 
   AIPlannerPanel.BtnGenerate := TLazButton.CreateEx(parent,
-    'Generate Script', '', 0, 0, 120, 28);
-  AIPlannerPanel.BtnGenerate.Align   := ELazAlign.Right;
+    'Generate Script Actions', '', 20, 310, 200, 32);
+  AIPlannerPanel.BtnGenerate.Font.Style := [ELazFontStyles.Bold];
   AIPlannerPanel.BtnGenerate.OnClick := @AIPlannerPanel.OnGenerateClick;
 end;
 

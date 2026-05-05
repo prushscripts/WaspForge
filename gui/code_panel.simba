@@ -28,6 +28,49 @@ begin
   WriteLn('Save clicked');
 end;
 
+function TCodePanel.GenerateSkeleton(scriptName: String): String;
+begin
+  if scriptName = '' then scriptName := 'MyScript';
+  Result :=
+    '{$I WaspLib/osrs.simba}' + LINE_SEP +
+    LINE_SEP +
+    'type' + LINE_SEP +
+    '  EState = enum(LOGIN, LEVEL_UP, END_SCRIPT);' + LINE_SEP +
+    LINE_SEP +
+    '  T' + scriptName + ' = record' + LINE_SEP +
+    '    Actions: UInt64;' + LINE_SEP +
+    '  end;' + LINE_SEP +
+    LINE_SEP +
+    'function T' + scriptName + '.GetState(): EState;' + LINE_SEP +
+    'begin' + LINE_SEP +
+    '  if Activity.IsFinished then Exit(EState.END_SCRIPT);' + LINE_SEP +
+    '  if not RSClient.IsLoggedIn() then Exit(EState.LOGIN);' + LINE_SEP +
+    '  if Chat.LeveledUp() then Exit(EState.LEVEL_UP);' + LINE_SEP +
+    '  Result := EState.END_SCRIPT;' + LINE_SEP +
+    'end;' + LINE_SEP +
+    LINE_SEP +
+    'procedure T' + scriptName + '.Run();' + LINE_SEP +
+    'var' + LINE_SEP +
+    '  state: EState;' + LINE_SEP +
+    'begin' + LINE_SEP +
+    '  repeat' + LINE_SEP +
+    '    state := Self.GetState();' + LINE_SEP +
+    '    case state of' + LINE_SEP +
+    '      EState.LOGIN: Login.DoLogin();' + LINE_SEP +
+    '      EState.LEVEL_UP: Chat.HandleLevelUp();' + LINE_SEP +
+    '      EState.END_SCRIPT: Break;' + LINE_SEP +
+    '    end;' + LINE_SEP +
+    '    Antiban.DoAntiban();' + LINE_SEP +
+    '  until False;' + LINE_SEP +
+    'end;' + LINE_SEP +
+    LINE_SEP +
+    'var' + LINE_SEP +
+    '  Script: T' + scriptName + ';' + LINE_SEP +
+    'begin' + LINE_SEP +
+    '  Script.Run();' + LINE_SEP +
+    'end.';
+end;
+
 procedure TCodePanel.SetCode(code: String);
 begin
   CodePanel.Memo.Text := code;
@@ -40,6 +83,7 @@ begin
   CodePanel.Memo.ReadOnly := True;
   CodePanel.Memo.WordWrap := False;
   CodePanel.Memo.Align    := ELazAlign.Client;
+  CodePanel.Memo.Text := CodePanel.GenerateSkeleton('MyScript');
 
   CodePanel.BtnCopy := TLazButton.CreateEx(parent, 'Copy', '', 0, 0, 80, 28);
   CodePanel.BtnCopy.Align    := ELazAlign.Bottom;
