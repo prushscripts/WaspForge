@@ -7,7 +7,7 @@
   {$I WaspLib/osrs.simba}
 {$ENDIF}
 
-procedure TScriptForm.OnForgeStart(sender: TLazObject); override;
+procedure TScriptForm.OnStart(sender: TLazObject); override;
 begin
   inherited();
 end;
