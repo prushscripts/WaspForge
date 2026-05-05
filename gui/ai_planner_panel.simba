@@ -3,7 +3,42 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_AI_PLANNER_PANEL_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}
+
+type
+  TAIPlannerPanel = record
+    Root: TLazPanel;
+    DescriptionMemo: TLazMemo;
+    BtnGenerate: TLazButton;
+    OnGenerate: TLazNotifyEvent;
+  end;
+
+procedure TAIPlannerPanel.HandleGenerateClick(sender: TLazObject);
+begin
+  WriteLn('AI generate placeholder: ' + Self.DescriptionMemo.Text.Trim());
+  if Self.OnGenerate <> nil then
+    Lapify(Self.OnGenerate)(sender);
+end;
+
+procedure TAIPlannerPanel.Setup(owner: Pointer);
+begin
+  Self.Root := TLazPanel.CreateEx(owner, 0, 0, 0, 118);
+  Self.Root.Align := ELazAlign.Bottom;
+  Self.Root.Caption := '';
+
+  Self.DescriptionMemo := TLazMemo.CreateEx(Self.Root, 'AI Description', '', 8, 22, 0, 84);
+  Self.DescriptionMemo.Align := ELazAlign.Client;
+  Self.DescriptionMemo.BorderSpacing.Around := 8;
+
+  Self.BtnGenerate := TLazButton.CreateEx(Self.Root, 'Generate', '', 0, 0, 110, 30);
+  Self.BtnGenerate.Align := ELazAlign.Right;
+  Self.BtnGenerate.BorderSpacing.Top := 8;
+  Self.BtnGenerate.BorderSpacing.Right := 8;
+  Self.BtnGenerate.OnClick := @Self.HandleGenerateClick;
+end;
 

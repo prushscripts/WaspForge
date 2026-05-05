@@ -2,8 +2,22 @@
   WaspForge — main entry ScriptForm launcher (wired in later milestones).
   Part of the WaspForge script factory system.
 *)
-{$DEFINE WF_MAIN_INCLUDED}
-{$IFNDEF WF_TYPES_INCLUDED}
-  {$I core/types.simba}
-{$ENDIF}
+{$I WaspLib/osrs.simba}
+
+{$I core/types.simba}
+{$I core/actions_catalog.simba}
+{$I core/project_file.simba}
+{$I core/code_generator.simba}
+{$I gui/action_card.simba}
+{$I gui/code_panel.simba}
+{$I gui/action_panel.simba}
+{$I gui/ai_planner_panel.simba}
+{$I gui/forge_form.simba}
+
+var
+  Forge: TWaspForge;
+
+begin
+  Forge.Init();
+end.
 

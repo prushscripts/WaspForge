@@ -687,3 +687,25 @@ Replaced the placeholder `WaspForge/core/types.simba` with the full Phase **0.1*
 ## Suggested next step
 
 Continue from **Step 5** in ROADMAP: implement `core/actions_catalog.simba` (load/lookup actions via WaspLib JSON usage patterns), then `core/coord_library.simba`, then generator files, etc., in the strict build order.
+
+---
+
+## Phase 3 GUI milestone (Steps 20-24, 27)
+
+Implemented the requested GUI and entry-point files in strict order:
+
+- `gui/action_card.simba`:
+  - Added `TActionCard` with traffic-light indicator, action type combo, dynamic input rows, grab placeholders, and move/delete controls.
+  - Added validation logic for `RED / YELLOW / GREEN`.
+- `gui/code_panel.simba`:
+  - Added read-only live preview memo, `Copy` button, `Save .simba` button, and status label format `Lines: N | Actions: N | X GREEN Y RED`.
+- `gui/action_panel.simba`:
+  - Added left builder panel with script name, scrollable action cards, add/move/delete handling, and antiban fields (break interval, break length, sleep time).
+- `gui/ai_planner_panel.simba`:
+  - Added bottom AI description memo and Generate button placeholder (`WriteLn`).
+- `gui/forge_form.simba`:
+  - Added `TWaspForge = record(TScriptForm)` orchestration.
+  - Implemented top bar controls (mode toggle, save/load project), chunk filter/list controls, project sync, and `UpdateCodePreview()` calling `Generator.Generate(Self.Project)` after state changes.
+  - Overrode `OnStart` following `TScriptForm` pattern.
+- `WaspForge.simba`:
+  - Replaced placeholder with full entry-point script including `{$I WaspLib/osrs.simba}`, WaspForge includes, and launcher (`Forge.Init();`).

@@ -3,7 +3,279 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_ACTION_PANEL_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I ../core/actions_catalog.simba}
+{$ENDIF}
+{$IFNDEF WF_ACTION_CARD_INCLUDED}
+  {$I action_card.simba}
+{$ENDIF}
+
+type
+  TActionPanel = record
+    Root: TLazPanel;
+    ScriptNameEdit: TLazEdit;
+    Scroll: TLazScrollBox;
+    CardsHost: TLazPanel;
+    BtnAddAction: TLazButton;
+    BreakIntervalEdit, BreakLengthEdit, SleepTimeEdit: TLazEdit;
+    Cards: array of TActionCard;
+    Catalog: TActionsCatalog;
+    OnChanged: TLazNotifyEvent;
+  end;
+
+procedure TActionPanel.EmitChanged(sender: TLazObject);
+begin
+  if Self.OnChanged <> nil then
+    Lapify(Self.OnChanged)(sender);
+end;
+
+procedure TActionPanel.RebuildCardTags();
+var
+  i, j: Integer;
+begin
+  for i := 0 to High(Self.Cards) do
+  begin
+    Self.Cards[i].ActionType.Tag := i;
+    Self.Cards[i].BtnMoveUp.Tag := i;
+    Self.Cards[i].BtnMoveDown.Tag := i;
+    Self.Cards[i].BtnDelete.Tag := i;
+    for j := 0 to High(Self.Cards[i].InputEdits) do
+    begin
+      Self.Cards[i].InputEdits[j].Tag := (i * 100) + j;
+      Self.Cards[i].GrabButtons[j].Tag := (i * 100) + j;
+    end;
+  end;
+end;
+
+procedure TActionPanel.BindCardEvents(cardIdx: Integer);
+var
+  j: Integer;
+begin
+  Self.Cards[cardIdx].ActionType.OnChange := @Self.OnActionTypeChanged;
+  Self.Cards[cardIdx].BtnMoveUp.OnClick := @Self.OnMoveUpClick;
+  Self.Cards[cardIdx].BtnMoveDown.OnClick := @Self.OnMoveDownClick;
+  Self.Cards[cardIdx].BtnDelete.OnClick := @Self.OnDeleteClick;
+
+  for j := 0 to High(Self.Cards[cardIdx].InputEdits) do
+  begin
+    Self.Cards[cardIdx].InputEdits[j].OnChange := @Self.OnInputChanged;
+    Self.Cards[cardIdx].GrabButtons[j].OnClick := @Self.OnGrabClick;
+  end;
+end;
+
+procedure TActionPanel.RebuildCards(actions: TForgeActionArray);
+var
+  i, j, selectedIdx: Integer;
+begin
+  Self.CardsHost.RemoveChildren(False);
+  SetLength(Self.Cards, Length(actions));
+
+  for i := 0 to High(actions) do
+  begin
+    Self.Cards[i].Setup(Self.CardsHost, actions[i], i);
+    Self.Cards[i].Panel.Align := ELazAlign.Top;
+    Self.Cards[i].Panel.Caption := '';
+
+    for j := 0 to High(Self.Catalog.Entries) do
+      Self.Cards[i].ActionType.Items.Add(Self.Catalog.Entries[j].DisplayName);
+
+    selectedIdx := 0;
+    for j := 0 to High(Self.Catalog.Entries) do
+      if Self.Catalog.Entries[j].ID = actions[i].CatalogID then
+      begin
+        selectedIdx := j;
+        Break;
+      end;
+    Self.Cards[i].ActionType.ItemIndex := selectedIdx;
+
+    Self.Cards[i].RefreshInputControls();
+    Self.Cards[i].SetTrafficLight(Self.Cards[i].Validate());
+    Self.BindCardEvents(i);
+  end;
+
+  Self.RebuildCardTags();
+end;
+
+function TActionPanel.GetActions(): TForgeActionArray;
+var
+  i, j: Integer;
+begin
+  SetLength(Result, Length(Self.Cards));
+  for i := 0 to High(Self.Cards) do
+  begin
+    Result[i] := Self.Cards[i].Action;
+    for j := 0 to High(Result[i].Inputs) do
+      if j <= High(Self.Cards[i].InputEdits) then
+        Result[i].Inputs[j].Value := Self.Cards[i].InputEdits[j].Text;
+    Result[i].TrafficLight := Self.Cards[i].Validate();
+  end;
+end;
+
+procedure TActionPanel.OnInputChanged(sender: TLazObject);
+var
+  cardIdx, inputIdx: Integer;
+begin
+  cardIdx := TLazControl(sender).Tag div 100;
+  inputIdx := TLazControl(sender).Tag mod 100;
+  if (cardIdx < 0) or (cardIdx > High(Self.Cards)) then Exit;
+  if (inputIdx < 0) or (inputIdx > High(Self.Cards[cardIdx].Action.Inputs)) then Exit;
+
+  Self.Cards[cardIdx].Action.Inputs[inputIdx].Value := TLazEdit(sender).Text;
+  Self.Cards[cardIdx].Action.Inputs[inputIdx].IsGrabbed := False;
+  Self.Cards[cardIdx].SetTrafficLight(Self.Cards[cardIdx].Validate());
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnGrabClick(sender: TLazObject);
+var
+  cardIdx, inputIdx: Integer;
+begin
+  cardIdx := TLazControl(sender).Tag div 100;
+  inputIdx := TLazControl(sender).Tag mod 100;
+  if (cardIdx < 0) or (cardIdx > High(Self.Cards)) then Exit;
+  if (inputIdx < 0) or (inputIdx > High(Self.Cards[cardIdx].Action.Inputs)) then Exit;
+
+  WriteLn('Grab placeholder: ' + Self.Cards[cardIdx].Action.Inputs[inputIdx].ID);
+  Self.Cards[cardIdx].Action.Inputs[inputIdx].Value := 'GRABBED';
+  Self.Cards[cardIdx].Action.Inputs[inputIdx].IsGrabbed := True;
+  Self.Cards[cardIdx].InputEdits[inputIdx].Text := Self.Cards[cardIdx].Action.Inputs[inputIdx].Value;
+  Self.Cards[cardIdx].SetTrafficLight(Self.Cards[cardIdx].Validate());
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnActionTypeChanged(sender: TLazObject);
+var
+  cardIdx, entryIdx: Integer;
+begin
+  cardIdx := TLazControl(sender).Tag;
+  if (cardIdx < 0) or (cardIdx > High(Self.Cards)) then Exit;
+
+  entryIdx := Self.Cards[cardIdx].ActionType.ItemIndex;
+  if (entryIdx < 0) or (entryIdx > High(Self.Catalog.Entries)) then Exit;
+
+  Self.Cards[cardIdx].SetAction(Self.Catalog.Entries[entryIdx]);
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnMoveUpClick(sender: TLazObject);
+var
+  idx, i: Integer;
+  actions: TForgeActionArray;
+  tmp: TForgeAction;
+begin
+  idx := TLazControl(sender).Tag;
+  if idx <= 0 then Exit;
+
+  actions := Self.GetActions();
+  tmp := actions[idx - 1];
+  actions[idx - 1] := actions[idx];
+  actions[idx] := tmp;
+  Self.RebuildCards(actions);
+  for i := 0 to High(Self.Cards) do
+    Self.Cards[i].SetTrafficLight(Self.Cards[i].Validate());
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnMoveDownClick(sender: TLazObject);
+var
+  idx, i: Integer;
+  actions: TForgeActionArray;
+  tmp: TForgeAction;
+begin
+  idx := TLazControl(sender).Tag;
+  if (idx < 0) or (idx >= High(Self.Cards)) then Exit;
+
+  actions := Self.GetActions();
+  tmp := actions[idx + 1];
+  actions[idx + 1] := actions[idx];
+  actions[idx] := tmp;
+  Self.RebuildCards(actions);
+  for i := 0 to High(Self.Cards) do
+    Self.Cards[i].SetTrafficLight(Self.Cards[i].Validate());
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnDeleteClick(sender: TLazObject);
+var
+  idx, i, n: Integer;
+  actions: TForgeActionArray;
+begin
+  idx := TLazControl(sender).Tag;
+  if (idx < 0) or (idx > High(Self.Cards)) then Exit;
+
+  actions := Self.GetActions();
+  n := Length(actions);
+  if n = 0 then Exit;
+  for i := idx to n - 2 do
+    actions[i] := actions[i + 1];
+  SetLength(actions, n - 1);
+  Self.RebuildCards(actions);
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.OnAddActionClick(sender: TLazObject);
+var
+  actions: TForgeActionArray;
+  newAction: TForgeAction;
+begin
+  if Length(Self.Catalog.Entries) = 0 then Exit;
+  actions := Self.GetActions();
+  newAction := WFMakeDefaultAction(Self.Catalog.Entries[0]);
+  actions += newAction;
+  Self.RebuildCards(actions);
+  Self.EmitChanged(sender);
+end;
+
+procedure TActionPanel.Setup(owner: Pointer; catalog: TActionsCatalog);
+var
+  topPanel, antibanPanel: TLazPanel;
+begin
+  Self.Catalog := catalog;
+
+  Self.Root := TLazPanel.CreateEx(owner, 0, 0, 420, 0);
+  Self.Root.Align := ELazAlign.Left;
+  Self.Root.Caption := '';
+
+  topPanel := TLazPanel.CreateEx(Self.Root, 0, 0, 0, 64);
+  topPanel.Align := ELazAlign.Top;
+  topPanel.Caption := '';
+  topPanel.BevelOuter := ELazPanelBevel.None;
+  Self.ScriptNameEdit := TLazEdit.CreateEx(topPanel, 'Script Name', '', 8, 24, 220, 24);
+  Self.ScriptNameEdit.OnChange := @Self.EmitChanged;
+
+  Self.BtnAddAction := TLazButton.CreateEx(topPanel, '+ Add Action', '', 240, 24, 120, 24);
+  Self.BtnAddAction.OnClick := @Self.OnAddActionClick;
+
+  Self.Scroll := TLazScrollBox.CreateEx(Self.Root);
+  Self.Scroll.Align := ELazAlign.Client;
+  Self.Scroll.VertScrollBar.Visible := True;
+  Self.CardsHost := TLazPanel.CreateEx(Self.Scroll);
+  Self.CardsHost.Align := ELazAlign.Top;
+  Self.CardsHost.Caption := '';
+  Self.CardsHost.BevelOuter := ELazPanelBevel.None;
+  Self.CardsHost.AutoSize := True;
+
+  antibanPanel := TLazPanel.CreateEx(Self.Root, 0, 0, 0, 106);
+  antibanPanel.Align := ELazAlign.Bottom;
+  antibanPanel.Caption := '';
+  antibanPanel.BevelOuter := ELazPanelBevel.None;
+
+  Self.BreakIntervalEdit := TLazEdit.CreateEx(antibanPanel, 'Break interval (min)', '', 8, 18, 120, 24);
+  Self.BreakLengthEdit := TLazEdit.CreateEx(antibanPanel, 'Break length (min)', '', 136, 18, 120, 24);
+  Self.SleepTimeEdit := TLazEdit.CreateEx(antibanPanel, 'Sleep time', '', 264, 18, 120, 24);
+  Self.BreakIntervalEdit.OnKeyPress := @FormUtils.NumberField;
+  Self.BreakLengthEdit.OnKeyPress := @FormUtils.NumberField;
+  Self.SleepTimeEdit.OnKeyPress := @FormUtils.TimeField;
+  Self.BreakIntervalEdit.OnChange := @Self.EmitChanged;
+  Self.BreakLengthEdit.OnChange := @Self.EmitChanged;
+  Self.SleepTimeEdit.OnChange := @Self.EmitChanged;
+
+  Self.RebuildCards([]);
+end;
 

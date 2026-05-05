@@ -3,7 +3,168 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_ACTION_CARD_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I ../core/actions_catalog.simba}
+{$ENDIF}
+
+const
+  TL_RED: TColor = $0000CC;
+  TL_YELLOW: TColor = $00AACC;
+  TL_GREEN: TColor = $00AA00;
+
+type
+  TActionCard = record
+    Panel: TLazPanel;
+    Light: TLazPanel;
+    ActionType: TLazComboBox;
+    BtnMoveUp, BtnMoveDown, BtnDelete: TLazButton;
+    InputLabels: array of TLazLabel;
+    InputEdits: array of TLazEdit;
+    GrabButtons: array of TLazButton;
+    Action: TForgeAction;
+  end;
+
+function WFInputNeedsGrab(inputType: EInputType): Boolean;
+begin
+  case inputType of
+    EInputType.COORDINATE, EInputType.ITEM_NAME, EInputType.NPC_NAME, EInputType.OBJECT_NAME:
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+function WFMakeDefaultAction(entry: TCatalogEntry): TForgeAction;
+begin
+  Result := Default(TForgeAction);
+  Result.InstanceID := entry.ID + '_' + ToStr(Round(Random(1000000)));
+  Result.CatalogID := entry.ID;
+  Result.DisplayName := entry.DisplayName;
+  Result.Category := entry.Category;
+  Result.Inputs := entry.Inputs;
+  Result.Enabled := True;
+  Result.TrafficLight := ETrafficLight.RED;
+end;
+
+procedure TActionCard.SetTrafficLight(light: ETrafficLight);
+begin
+  Self.Action.TrafficLight := light;
+  case light of
+    ETrafficLight.RED: Self.Light.Color := TL_RED;
+    ETrafficLight.YELLOW: Self.Light.Color := TL_YELLOW;
+    ETrafficLight.GREEN: Self.Light.Color := TL_GREEN;
+  end;
+end;
+
+procedure TActionCard.RefreshInputControls();
+var
+  i, y: Integer;
+begin
+  y := 36;
+  for i := 0 to High(Self.InputLabels) do
+  begin
+    Self.InputLabels[i].Visible := i <= High(Self.Action.Inputs);
+    Self.InputEdits[i].Visible := i <= High(Self.Action.Inputs);
+    Self.GrabButtons[i].Visible := i <= High(Self.Action.Inputs);
+
+    if i <= High(Self.Action.Inputs) then
+    begin
+      Self.InputLabels[i].Top := y;
+      Self.InputEdits[i].Top := y;
+      Self.GrabButtons[i].Top := y;
+
+      Self.InputLabels[i].Caption := Self.Action.Inputs[i].Label_ + ':';
+      Self.InputEdits[i].Text := Self.Action.Inputs[i].Value;
+      Self.GrabButtons[i].Enabled := WFInputNeedsGrab(Self.Action.Inputs[i].InputType);
+      y += 28;
+    end;
+  end;
+
+  Self.Panel.Height := y + 6;
+end;
+
+function TActionCard.Validate(): ETrafficLight;
+var
+  input: TForgeInput;
+  hasUngrabbedCoords: Boolean;
+begin
+  hasUngrabbedCoords := False;
+  for input in Self.Action.Inputs do
+  begin
+    if input.IsRequired and ((input.Value.Trim() = '') or (UpperCase(input.Value.Trim()) = 'NEEDS_GRAB')) then
+      Exit(ETrafficLight.RED);
+
+    if (input.InputType = EInputType.COORDINATE) and (not input.IsGrabbed) then
+      hasUngrabbedCoords := True;
+  end;
+
+  if hasUngrabbedCoords then
+    Result := ETrafficLight.YELLOW
+  else
+    Result := ETrafficLight.GREEN;
+end;
+
+procedure TActionCard.SetAction(entry: TCatalogEntry);
+begin
+  Self.Action := WFMakeDefaultAction(entry);
+  Self.RefreshInputControls();
+  Self.SetTrafficLight(Self.Validate());
+end;
+
+function TActionCard.GetAction(): TForgeAction;
+var
+  i: Integer;
+begin
+  for i := 0 to High(Self.Action.Inputs) do
+    if i <= High(Self.InputEdits) then
+      Result.Inputs[i].Value := Self.InputEdits[i].Text;
+
+  Result := Self.Action;
+  Result.TrafficLight := Self.Validate();
+end;
+
+procedure TActionCard.Setup(owner: Pointer; action: TForgeAction; cardIndex: Integer; maxInputs: Integer = 5);
+var
+  i: Integer;
+begin
+  Self.Action := action;
+  Self.Panel := TLazPanel.CreateEx(owner, 0, 0, 0, 160);
+  Self.Panel.BevelOuter := ELazPanelBevel.None;
+  Self.Panel.BorderSpacing.Around := 4;
+
+  Self.Light := TLazPanel.CreateEx(Self.Panel, 8, 8, 14, 14);
+  Self.Light.BevelOuter := ELazPanelBevel.None;
+
+  Self.ActionType := TLazComboBox.CreateEx(Self.Panel, '', '', 28, 6, 220, 22);
+  Self.ActionType.Tag := cardIndex;
+  Self.ActionType.Style := ELazComboBoxStyle.DropDownList;
+
+  Self.BtnMoveUp := TLazButton.CreateEx(Self.Panel, 'Up', '', 258, 6, 42, 22);
+  Self.BtnMoveDown := TLazButton.CreateEx(Self.Panel, 'Down', '', 304, 6, 50, 22);
+  Self.BtnDelete := TLazButton.CreateEx(Self.Panel, 'Del', '', 358, 6, 40, 22);
+  Self.BtnMoveUp.Tag := cardIndex;
+  Self.BtnMoveDown.Tag := cardIndex;
+  Self.BtnDelete.Tag := cardIndex;
+
+  SetLength(Self.InputLabels, maxInputs);
+  SetLength(Self.InputEdits, maxInputs);
+  SetLength(Self.GrabButtons, maxInputs);
+  for i := 0 to maxInputs - 1 do
+  begin
+    Self.InputLabels[i] := TLazLabel.CreateEx(Self.Panel, '', '', 12, 36 + (i * 28), 96, 22);
+    Self.InputEdits[i] := TLazEdit.CreateEx(Self.Panel, '', '', 112, 36 + (i * 28), 180, 22);
+    Self.GrabButtons[i] := TLazButton.CreateEx(Self.Panel, 'Grab', '', 298, 36 + (i * 28), 50, 22);
+
+    Self.InputEdits[i].Tag := (cardIndex * 100) + i;
+    Self.GrabButtons[i].Tag := (cardIndex * 100) + i;
+  end;
+
+  Self.RefreshInputControls();
+  Self.SetTrafficLight(Self.Validate());
+end;
 

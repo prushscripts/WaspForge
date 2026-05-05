@@ -3,7 +3,225 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_FORGE_FORM_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}
+{$IFNDEF WF_ACTIONS_CATALOG_INCLUDED}
+  {$I ../core/actions_catalog.simba}
+{$ENDIF}
+{$IFNDEF WF_PROJECT_FILE_INCLUDED}
+  {$I ../core/project_file.simba}
+{$ENDIF}
+{$IFNDEF WF_CODE_GENERATOR_INCLUDED}
+  {$I ../core/code_generator.simba}
+{$ENDIF}
+{$IFNDEF WF_ACTION_PANEL_INCLUDED}
+  {$I action_panel.simba}
+{$ENDIF}
+{$IFNDEF WF_CODE_PANEL_INCLUDED}
+  {$I code_panel.simba}
+{$ENDIF}
+{$IFNDEF WF_AI_PLANNER_PANEL_INCLUDED}
+  {$I ai_planner_panel.simba}
+{$ENDIF}
+
+type
+  TWaspForge = record(TScriptForm)
+    Project: TForgeProject;
+    Catalog: TActionsCatalog;
+    Generator: TCodeGenerator;
+
+    MainTab: TLazTabSheet;
+    TopBar: TLazPanel;
+    Body: TLazPanel;
+    LeftBottom: TLazPanel;
+
+    ModeCombo: TLazComboBox;
+    BtnSaveProject: TLazButton;
+    BtnLoadProject: TLazButton;
+
+    ChunkFilterEdit: TLazEdit;
+    ChunkList: TLazListBox;
+
+    ActionPanel: TActionPanel;
+    CodePanel: TCodePanel;
+    AIPlannerPanel: TAIPlannerPanel;
+  end;
+
+const
+  WF_CHUNK_BOUNDS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'chunk_bounds.json';
+  WF_DEFAULT_PROJECT: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'last_project.wfproj';
+
+procedure TWaspForge.SyncProjectFromUI();
+var
+  i: Integer;
+begin
+  Self.Project.Name := Self.ActionPanel.ScriptNameEdit.Text;
+  Self.Project.Actions := Self.ActionPanel.GetActions();
+  Self.Project.BreakInterval := StrToIntDef(Self.ActionPanel.BreakIntervalEdit.Text, 0);
+  Self.Project.BreakLength := StrToIntDef(Self.ActionPanel.BreakLengthEdit.Text, 0);
+  Self.Project.SleepTime := Self.ActionPanel.SleepTimeEdit.Text;
+  Self.Project.MapChunks := [];
+  for i := 0 to Self.ChunkList.Items.Count - 1 do
+    Self.Project.MapChunks += Self.ChunkList.Items[i];
+end;
+
+procedure TWaspForge.UpdateCodePreview();
+var
+  code: String;
+  redCount, greenCount, i, linesCount: Integer;
+begin
+  Self.SyncProjectFromUI();
+  code := Self.Generator.Generate(Self.Project);
+  Self.CodePanel.SetCode(code);
+
+  redCount := 0;
+  greenCount := 0;
+  for i := 0 to High(Self.Project.Actions) do
+    case Self.Project.Actions[i].TrafficLight of
+      ETrafficLight.RED: Inc(redCount);
+      ETrafficLight.GREEN: Inc(greenCount);
+    end;
+
+  linesCount := Max(1, code.Count(LINE_SEP) + 1);
+  Self.CodePanel.SetStatus(linesCount, Length(Self.Project.Actions), greenCount, redCount);
+end;
+
+procedure TWaspForge.OnAnyStateChanged(sender: TLazObject);
+begin
+  Self.UpdateCodePreview();
+end;
+
+procedure TWaspForge.OnChunkFilterChanged(sender: TLazObject);
+var
+  parser, entry: TJSONParser;
+  i: Integer;
+  key, filter: String;
+begin
+  Self.ChunkList.Items.Clear();
+  if not FileExists(WF_CHUNK_BOUNDS_JSON) then Exit;
+
+  parser := new TJSONParser();
+  parser.Load(WF_CHUNK_BOUNDS_JSON);
+  if parser.Typ <> EJSONType.OBJ then Exit;
+
+  filter := LowerCase(Self.ChunkFilterEdit.Text.Trim());
+  for i := 0 to parser.Count - 1 do
+  begin
+    key := parser.Key[i];
+    entry := parser.Item[i];
+    if (entry.Typ = EJSONType.OBJ) and ((filter = '') or (filter in LowerCase(key))) then
+      Self.ChunkList.Items.Add(key);
+  end;
+end;
+
+procedure TWaspForge.OnChunkSelected(sender: TLazObject);
+var
+  value: String;
+begin
+  if Self.ChunkList.ItemIndex < 0 then Exit;
+  value := Self.ChunkList.Items[Self.ChunkList.ItemIndex];
+  if Self.ChunkList.Items.Search(value) >= 0 then
+  begin
+    Self.UpdateCodePreview();
+    Exit;
+  end;
+  Self.ChunkList.Items.Add(value);
+  Self.UpdateCodePreview();
+end;
+
+procedure TWaspForge.OnModeChanged(sender: TLazObject);
+begin
+  if Self.ModeCombo.ItemIndex = 1 then
+    Self.Project.Mode := EForgeMode.SEQUENTIAL_QUEST
+  else
+    Self.Project.Mode := EForgeMode.LOOP_SCRIPT;
+  Self.UpdateCodePreview();
+end;
+
+procedure TWaspForge.OnSaveProject(sender: TLazObject);
+begin
+  Self.SyncProjectFromUI();
+  Self.Project.Save(WF_DEFAULT_PROJECT);
+  WriteLn('Saved project: ' + WF_DEFAULT_PROJECT);
+end;
+
+procedure TWaspForge.OnLoadProject(sender: TLazObject);
+begin
+  if not Self.Project.Load(WF_DEFAULT_PROJECT) then
+    Exit;
+
+  Self.ActionPanel.ScriptNameEdit.Text := Self.Project.Name;
+  Self.ActionPanel.BreakIntervalEdit.Text := ToStr(Self.Project.BreakInterval);
+  Self.ActionPanel.BreakLengthEdit.Text := ToStr(Self.Project.BreakLength);
+  Self.ActionPanel.SleepTimeEdit.Text := Self.Project.SleepTime;
+  Self.ActionPanel.RebuildCards(Self.Project.Actions);
+  Self.UpdateCodePreview();
+end;
+
+procedure TWaspForge.OnStart(sender: TLazObject); override;
+begin
+  inherited();
+end;
+
+procedure TWaspForge.Init();
+var
+  leftHost, chunkPanel: TLazPanel;
+begin
+  Self.Catalog.Load(WF_ACTIONS_JSON);
+
+  Self.Setup('WaspForge');
+  Self.MainTab := Self.CreateTab('Forge');
+
+  Self.TopBar := TLazPanel.CreateEx(Self.MainTab, 0, 0, 0, 42);
+  Self.TopBar.Align := ELazAlign.Top;
+  Self.TopBar.BevelOuter := ELazPanelBevel.None;
+  Self.TopBar.Caption := '';
+
+  Self.ModeCombo := TLazComboBox.CreateEx(Self.TopBar, '', '', 430, 8, 170, 24);
+  Self.ModeCombo.Items.Add('Loop Script');
+  Self.ModeCombo.Items.Add('Sequential Quest');
+  Self.ModeCombo.ItemIndex := 0;
+  Self.ModeCombo.OnChange := @Self.OnModeChanged;
+
+  Self.BtnSaveProject := TLazButton.CreateEx(Self.TopBar, 'Save Project', '', 610, 8, 90, 24);
+  Self.BtnLoadProject := TLazButton.CreateEx(Self.TopBar, 'Load Project', '', 704, 8, 90, 24);
+  Self.BtnSaveProject.OnClick := @Self.OnSaveProject;
+  Self.BtnLoadProject.OnClick := @Self.OnLoadProject;
+
+  Self.Body := TLazPanel.CreateEx(Self.MainTab);
+  Self.Body.Align := ELazAlign.Client;
+  Self.Body.Caption := '';
+
+  leftHost := TLazPanel.CreateEx(Self.Body, 0, 0, 420, 0);
+  leftHost.Align := ELazAlign.Left;
+  leftHost.Caption := '';
+
+  Self.ActionPanel.Setup(leftHost, Self.Catalog);
+  Self.ActionPanel.OnChanged := @Self.OnAnyStateChanged;
+  Self.ActionPanel.Root.Align := ELazAlign.Client;
+
+  chunkPanel := TLazPanel.CreateEx(leftHost, 0, 0, 0, 114);
+  chunkPanel.Align := ELazAlign.Bottom;
+  chunkPanel.Caption := '';
+  chunkPanel.BevelOuter := ELazPanelBevel.None;
+  Self.ChunkFilterEdit := TLazEdit.CreateEx(chunkPanel, 'Map chunk filter', '', 8, 18, 180, 24);
+  Self.ChunkList := TLazListBox.CreateEx(chunkPanel, 'Matching chunks', '', 8, 48, 180, 58);
+  Self.ChunkFilterEdit.OnChange := @Self.OnChunkFilterChanged;
+  Self.ChunkList.OnClick := @Self.OnChunkSelected;
+
+  Self.CodePanel.Setup(Self.Body);
+  Self.AIPlannerPanel.Setup(Self.MainTab);
+  Self.AIPlannerPanel.OnGenerate := @Self.OnAnyStateChanged;
+
+  Self.Project.Mode := EForgeMode.LOOP_SCRIPT;
+  Self.Project.Name := 'WaspForge Script';
+  Self.ActionPanel.ScriptNameEdit.Text := Self.Project.Name;
+  Self.OnChunkFilterChanged(Self.ChunkFilterEdit);
+  Self.UpdateCodePreview();
+  Self.Run();
+end;
 
