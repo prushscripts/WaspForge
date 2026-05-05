@@ -126,6 +126,7 @@ Checked against script exports in `Simba/Source/script/imports`:
 - `ExtractFilePath` (not exported to scripts)
 - `FindFirst` / `FindNext` / `FindClose` (not exported to scripts)
 - `FindColorTolerance` (not exported; color search is via `Target.FindColor(...)`, `TColorFinder`, etc.)
+- `TIME_DATE` (not defined in WaspLib 2.0 time constants; use `TIME_SHORT` and other constants from `WaspLib/utils/time.simba`)
 
 Use these instead:
 - path ops: `PathNormalize`, `PathExtractDir`, `PathJoin`, etc.
