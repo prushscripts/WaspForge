@@ -172,22 +172,5 @@ begin
 
   ActionPanel.BtnAddAction         := TLazButton.CreateEx(parent, '+ Add Action', '', 8, 345, 120, 28);
   ActionPanel.BtnAddAction.OnClick := @ActionPanel.OnAddActionClick;
-
-  ActionPanel.BreakIntervalEdit            := TLazEdit.CreateEx(parent, 'Break (min):', '', 8, 382, 60);
-  ActionPanel.BreakIntervalEdit.OnChange   := @ActionPanel.EmitChanged;
-  ActionPanel.BreakIntervalEdit.OnKeyPress := @FormUtils.NumberField;
-
-  ActionPanel.BreakLengthEdit            := TLazEdit.CreateEx(parent, 'Length (min):', '', 8, 412, 60);
-  ActionPanel.BreakLengthEdit.OnChange   := @ActionPanel.EmitChanged;
-  ActionPanel.BreakLengthEdit.OnKeyPress := @FormUtils.NumberField;
-
-  ActionPanel.SleepTimeEdit            := TLazEdit.CreateEx(parent, 'Sleep at:', '', 8, 442, 80);
-  ActionPanel.SleepTimeEdit.OnChange   := @ActionPanel.EmitChanged;
-  ActionPanel.SleepTimeEdit.OnKeyPress := @FormUtils.TimeField;
-
-  ActionPanel.ChunkFilterEdit          := TLazEdit.CreateEx(parent, 'Map chunk:', '', 8, 477, 150);
-  ActionPanel.ChunkFilterEdit.OnChange := @ActionPanel.EmitChanged;
-
-  ActionPanel.ChunkListBox := TLazListBox.CreateEx(parent, '', '', 8, 505, 232, 80);
 end;
 

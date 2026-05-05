@@ -14,27 +14,70 @@ end;
 
 procedure TScriptForm.InitForge();
 var
-  tab:        TLazTabSheet;
-  leftPanel:  TLazPanel;
-  rightPanel: TLazPanel;
+  tabBuilder:  TLazTabSheet;
+  tabSettings: TLazTabSheet;
+  tabAI:       TLazTabSheet;
+  leftPanel:   TLazPanel;
+  rightPanel:  TLazPanel;
 begin
   Self.Setup('WaspForge');
-  tab := Self.CreateTab('Script Builder');
 
-  // Left panel — fixed 320px wide
-  leftPanel := TLazPanel.CreateEx(tab, 0, 0, 320, 0);
-  leftPanel.Align := ELazAlign.Left;
+  // Override form size — unlock constraints then resize
+  Self.Form.Constraints.MaxWidth  := 0;
+  Self.Form.Constraints.MinWidth  := 0;
+  Self.Form.Constraints.MaxHeight := 0;
+  Self.Form.Constraints.MinHeight := 0;
+  Self.Form.Width  := 1200;
+  Self.Form.Height := 800;
+  Self.Form.Constraints.MaxWidth  := 1200;
+  Self.Form.Constraints.MinWidth  := 1200;
+  Self.Form.Constraints.MaxHeight := 800;
+  Self.Form.Constraints.MinHeight := 800;
+
+  // ── TAB 1: Script Builder ──────────────────────────────
+  tabBuilder := Self.CreateTab('Script Builder');
+
+  // Left panel 360px — action builder
+  leftPanel := TLazPanel.CreateEx(tabBuilder, 0, 0, 360, 0);
+  leftPanel.Align      := ELazAlign.Left;
   leftPanel.BevelOuter := ELazPanelBevel.None;
 
-  // Right panel — fills remaining space
-  rightPanel := TLazPanel.CreateEx(tab);
-  rightPanel.Align := ELazAlign.Client;
+  // Right panel — fills rest — live code preview
+  rightPanel := TLazPanel.CreateEx(tabBuilder);
+  rightPanel.Align      := ELazAlign.Client;
   rightPanel.BevelOuter := ELazPanelBevel.None;
 
-  // Wire panels to each setup procedure
   ActionPanel.Setup(leftPanel);
   CodePanel.Setup(rightPanel);
-  AIPlannerPanel.Setup(rightPanel);
+
+  // ── TAB 2: Settings ────────────────────────────────────
+  tabSettings := Self.CreateTab('Settings');
+
+  TLazLabel.CreateEx(tabSettings, 'Break interval (min):', '', 20, 24);
+  ActionPanel.BreakIntervalEdit := TLazEdit.CreateEx(tabSettings, '', '', 200, 20, 80);
+  ActionPanel.BreakIntervalEdit.OnChange   := @ActionPanel.EmitChanged;
+  ActionPanel.BreakIntervalEdit.OnKeyPress := @FormUtils.NumberField;
+
+  TLazLabel.CreateEx(tabSettings, 'Break length (min):', '', 20, 64);
+  ActionPanel.BreakLengthEdit := TLazEdit.CreateEx(tabSettings, '', '', 200, 60, 80);
+  ActionPanel.BreakLengthEdit.OnChange   := @ActionPanel.EmitChanged;
+  ActionPanel.BreakLengthEdit.OnKeyPress := @FormUtils.NumberField;
+
+  TLazLabel.CreateEx(tabSettings, 'Sleep at (HH:MM:SS):', '', 20, 104);
+  ActionPanel.SleepTimeEdit := TLazEdit.CreateEx(tabSettings, '', '', 200, 100, 100);
+  ActionPanel.SleepTimeEdit.OnChange   := @ActionPanel.EmitChanged;
+  ActionPanel.SleepTimeEdit.OnKeyPress := @FormUtils.TimeField;
+
+  TLazLabel.CreateEx(tabSettings, 'Map chunk search:', '', 20, 160);
+  ActionPanel.ChunkFilterEdit := TLazEdit.CreateEx(tabSettings, '', '', 20, 180, 300);
+  ActionPanel.ChunkFilterEdit.OnChange := @ActionPanel.EmitChanged;
+
+  TLazLabel.CreateEx(tabSettings, 'Loaded chunks:', '', 20, 220);
+  ActionPanel.ChunkListBox := TLazListBox.CreateEx(tabSettings, '', '', 20, 240, 400, 200);
+
+  // ── TAB 3: AI Planner ──────────────────────────────────
+  tabAI := Self.CreateTab('AI Planner');
+  AIPlannerPanel.Setup(tabAI);
 
   Self.Run();
 end;
