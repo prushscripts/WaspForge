@@ -51,10 +51,7 @@ begin
   for i := 0 to High(card.InputEdits) do
     if card.InputEdits[i].Text = '' then
       ok := False;
-  if ok then
-    col := WF_GREEN
-  else
-    col := WF_RED;
+  if ok then col := $00AA44 else col := $CC2200;
   card.Light.Color := col;
 end;
 
@@ -121,7 +118,6 @@ begin
   panel := TLazPanel.CreateEx(parent);
   panel.Height := 80;
   panel.Align  := ELazAlign.Top;
-  panel.Color  := WF_BG_CARD;
   card.Panel   := panel;
 
   light        := TLazPanel.CreateEx(panel);
@@ -129,43 +125,31 @@ begin
   light.Height := 12;
   light.Left   := 4;
   light.Top    := 4;
-  light.Color  := WF_RED;
+  light.Color  := $CC2200;
   card.Light   := light;
 
   combo          := TLazComboBox.CreateEx(panel, 'Select action', '', 20, 4, 160);
-  combo.Color    := WF_BG_PANEL;
-  combo.Font.Color := WF_TEXT_WHITE;
   combo.OnChange := @ActionPanel.OnActionTypeChanged;
   card.TypeCombo := combo;
 
   btnUp          := TLazButton.CreateEx(panel, '▲', '', 185, 4, 24, 24);
-  btnUp.Color    := WF_BG_PANEL;
-  btnUp.Font.Color := WF_TEXT_WHITE;
   btnUp.OnClick  := @ActionPanel.OnMoveUpClick;
   card.BtnUp     := btnUp;
 
   btnDn          := TLazButton.CreateEx(panel, '▼', '', 210, 4, 24, 24);
-  btnDn.Color    := WF_BG_PANEL;
-  btnDn.Font.Color := WF_TEXT_WHITE;
   btnDn.OnClick  := @ActionPanel.OnMoveDownClick;
   card.BtnDown   := btnDn;
 
   btnDel          := TLazButton.CreateEx(panel, '✕', '', 236, 4, 24, 24);
-  btnDel.Color    := WF_ACCENT;
-  btnDel.Font.Color := WF_TEXT_WHITE;
   btnDel.OnClick  := @ActionPanel.OnDeleteClick;
   card.BtnDelete  := btnDel;
 
   edit            := TLazEdit.CreateEx(panel, 'Value:', '', 20, 36, 160);
-  edit.Color      := WF_BG_PANEL;
-  edit.Font.Color := WF_TEXT_WHITE;
   edit.OnChange   := @ActionPanel.OnInputChanged;
   SetLength(card.InputEdits, 1);
   card.InputEdits[0] := edit;
 
   btnGrb          := TLazButton.CreateEx(panel, 'Grab', '', 185, 36, 50, 24);
-  btnGrb.Color    := WF_ACCENT2;
-  btnGrb.Font.Color := WF_TEXT_WHITE;
   btnGrb.OnClick  := @ActionPanel.OnGrabClick;
   SetLength(card.GrabBtns, 1);
   card.GrabBtns[0] := btnGrb;
@@ -177,8 +161,6 @@ end;
 procedure TActionPanel.Setup(parent: TLazControl);
 begin
   ActionPanel.ScriptNameEdit := TLazEdit.CreateEx(parent, 'Script name:', '', 8, 8, 200);
-  ActionPanel.ScriptNameEdit.Color := WF_BG_PANEL;
-  ActionPanel.ScriptNameEdit.Font.Color := WF_TEXT_WHITE;
   ActionPanel.ScriptNameEdit.OnChange := @ActionPanel.EmitChanged;
 
   ActionPanel.ScrollBox        := TLazScrollBox.CreateEx(parent);
@@ -188,36 +170,23 @@ begin
   ActionPanel.ScrollBox.Height := 300;
 
   ActionPanel.BtnAddAction         := TLazButton.CreateEx(parent, '+ Add Action', '', 8, 345, 120, 28);
-  ActionPanel.BtnAddAction.Color   := WF_ACCENT;
-  ActionPanel.BtnAddAction.Font.Color := WF_TEXT_WHITE;
-  ActionPanel.BtnAddAction.Font.Style := [ELazFontStyles.Bold];
   ActionPanel.BtnAddAction.OnClick := @ActionPanel.OnAddActionClick;
 
   ActionPanel.BreakIntervalEdit            := TLazEdit.CreateEx(parent, 'Break (min):', '', 8, 382, 60);
-  ActionPanel.BreakIntervalEdit.Color      := WF_BG_PANEL;
-  ActionPanel.BreakIntervalEdit.Font.Color := WF_TEXT_WHITE;
   ActionPanel.BreakIntervalEdit.OnChange   := @ActionPanel.EmitChanged;
   ActionPanel.BreakIntervalEdit.OnKeyPress := @FormUtils.NumberField;
 
   ActionPanel.BreakLengthEdit            := TLazEdit.CreateEx(parent, 'Length (min):', '', 8, 412, 60);
-  ActionPanel.BreakLengthEdit.Color      := WF_BG_PANEL;
-  ActionPanel.BreakLengthEdit.Font.Color := WF_TEXT_WHITE;
   ActionPanel.BreakLengthEdit.OnChange   := @ActionPanel.EmitChanged;
   ActionPanel.BreakLengthEdit.OnKeyPress := @FormUtils.NumberField;
 
   ActionPanel.SleepTimeEdit            := TLazEdit.CreateEx(parent, 'Sleep at:', '', 8, 442, 80);
-  ActionPanel.SleepTimeEdit.Color      := WF_BG_PANEL;
-  ActionPanel.SleepTimeEdit.Font.Color := WF_TEXT_WHITE;
   ActionPanel.SleepTimeEdit.OnChange   := @ActionPanel.EmitChanged;
   ActionPanel.SleepTimeEdit.OnKeyPress := @FormUtils.TimeField;
 
   ActionPanel.ChunkFilterEdit          := TLazEdit.CreateEx(parent, 'Map chunk:', '', 8, 477, 150);
-  ActionPanel.ChunkFilterEdit.Color    := WF_BG_PANEL;
-  ActionPanel.ChunkFilterEdit.Font.Color := WF_TEXT_WHITE;
   ActionPanel.ChunkFilterEdit.OnChange := @ActionPanel.EmitChanged;
 
   ActionPanel.ChunkListBox := TLazListBox.CreateEx(parent, '', '', 8, 505, 232, 80);
-  ActionPanel.ChunkListBox.Color := WF_BG_PANEL;
-  ActionPanel.ChunkListBox.Font.Color := WF_TEXT_WHITE;
 end;
 

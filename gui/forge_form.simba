@@ -15,16 +15,40 @@ end;
 procedure TScriptForm.InitForge();
 var
   tab: TLazTabSheet;
+  contentPanel: TLazPanel;
+  leftPanel: TLazPanel;
+  rightPanel: TLazPanel;
+  bottomStrip: TLazPanel;
 begin
   Self.Setup('WaspForge');
-  Self.Form.Color := WF_BG_DARK;
-  Self.Form.SetChildsFontColor(WF_TEXT_WHITE);
 
   tab := Self.CreateTab('Script Builder');
 
-  ActionPanel.Setup(tab);
-  CodePanel.Setup(tab);
-  AIPlannerPanel.Setup(tab);
+  bottomStrip := TLazPanel.CreateEx(tab);
+  bottomStrip.Align := ELazAlign.Bottom;
+  bottomStrip.Height := 80;
+  bottomStrip.Caption := '';
+  bottomStrip.BevelOuter := ELazPanelBevel.None;
+
+  contentPanel := TLazPanel.CreateEx(tab);
+  contentPanel.Align := ELazAlign.Client;
+  contentPanel.Caption := '';
+  contentPanel.BevelOuter := ELazPanelBevel.None;
+
+  leftPanel := TLazPanel.CreateEx(contentPanel);
+  leftPanel.Align := ELazAlign.Left;
+  leftPanel.Width := 320;
+  leftPanel.Caption := '';
+  leftPanel.BevelOuter := ELazPanelBevel.None;
+
+  rightPanel := TLazPanel.CreateEx(contentPanel);
+  rightPanel.Align := ELazAlign.Client;
+  rightPanel.Caption := '';
+  rightPanel.BevelOuter := ELazPanelBevel.None;
+
+  ActionPanel.Setup(leftPanel);
+  CodePanel.Setup(rightPanel);
+  AIPlannerPanel.Setup(bottomStrip);
 
   Self.Run();
 end;
