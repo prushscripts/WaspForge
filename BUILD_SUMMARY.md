@@ -11,6 +11,33 @@ Completed implementation steps: **1 through 14**
 - Steps 1–13: foundation and code generation engine completed.
 - Step 14: `tests/test_code_generator.simba` implemented (quality gate test harness).
 
+### Step 15 — `grabbers/grabber_base.simba` (completed)
+
+- Added `TGrabberBase` with required field:
+  - `FormHandle: NativeInt`
+- Implemented:
+  - `procedure TGrabberBase.MinimizeForm();`
+  - `procedure TGrabberBase.RestoreForm();`
+- Window behavior follows Simba/WaspLib form API (`TLazForm.Hide()` / `TLazForm.ShowOnTop()`), using the stored `FormHandle` when available.
+
+### Step 16 — `grabbers/grab_coordinate.simba` (completed)
+
+- Implemented:
+  - `function GrabCoordinate(): TGrabResult;`
+  - `function DetectChunk(point: TPoint): String;`
+- `GrabCoordinate` flow:
+  1. Calls `MinimizeForm`
+  2. Sleeps with `Sleep(Round(RandomMode(1200, 400, 2000)))`
+  3. Captures `Map.Position()`
+  4. Resolves chunk via `DetectChunk`
+  5. Calls `RestoreForm`
+  6. Returns populated `TGrabResult` (`Success`, `Point`, `ChunkName`)
+- `DetectChunk` flow:
+  - Loads `WF_CHUNK_BOUNDS_JSON`
+  - Parses JSON object entries
+  - Reads `x1/y1/x2/y2` bounds
+  - Returns matching chunk key or `'UNKNOWN'`
+
 ### Critical fix — Simba 2.0 color types (not a roadmap step)
 
 - **`core/types.simba`:** `TGrabResult.Colors` was incorrectly typed as `TCTS2ColorArray` (Simba 1.4 / SRL-T). It is now **`TColorArray`**, which is the Simba 2.0 built-in array of `TColor`.
@@ -20,7 +47,7 @@ Completed implementation steps: **1 through 14**
 
 **Manual check:** Run `tests/test_code_generator.simba` in Simba 2.0 and confirm the `TCTS2ColorArray` compile error is gone.
 
-**`core/paths.simba`:** Simba 2.0 has no `ScriptPath`. Resolution uses `ExpandFileName({$MACRO DIR} + '..' + … + 'data' + …)` (same `{$MACRO DIR}` pattern as `WaspLib/tools/run_tests.simba`), anchored on this file’s `core/` directory so `data/actions.json` always resolves under `WaspForge/data/`.
+**`core/paths.simba`:** Removed completely. Each file now declares its own `{$MACRO DIR}`-based path constant where needed.
 
 ---
 

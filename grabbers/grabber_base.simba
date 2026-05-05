@@ -3,7 +3,44 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_GRABBER_BASE_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}
 
+type
+  TGrabberBase = record
+    FormHandle: NativeInt;
+  end;
+
+function WFGrabberForm(base: TGrabberBase): TLazForm;
+begin
+  if base.FormHandle = 0 then
+    Exit(nil);
+
+  Result := TLazForm(Pointer(base.FormHandle));
+end;
+
+procedure TGrabberBase.MinimizeForm();
+var
+  form: TLazForm;
+begin
+  form := WFGrabberForm(Self);
+  if form = nil then
+    Exit;
+
+  form.Hide();
+end;
+
+procedure TGrabberBase.RestoreForm();
+var
+  form: TLazForm;
+begin
+  form := WFGrabberForm(Self);
+  if form = nil then
+    Exit;
+
+  form.ShowOnTop();
+end;

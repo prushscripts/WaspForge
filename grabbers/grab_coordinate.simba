@@ -3,11 +3,76 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_GRAB_COORDINATE_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
+{$ENDIF}
+{$IFNDEF WF_GRABBER_BASE_INCLUDED}
+  {$I grabber_base.simba}
 {$ENDIF}
 
 const
   WF_CHUNK_BOUNDS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'chunk_bounds.json';
 
+function DetectChunk(point: TPoint): String;
+var
+  parser: TJSONParser;
+  entry: TJSONItem;
+  i: Integer;
+  chunkName: String;
+  x1, y1, x2, y2: Integer;
+begin
+  Result := 'UNKNOWN';
+
+  if not FileExists(WF_CHUNK_BOUNDS_JSON) then
+    Exit;
+
+  parser := new TJSONParser();
+  parser.Load(WF_CHUNK_BOUNDS_JSON);
+  if parser.Typ <> EJSONType.OBJ then
+    Exit;
+
+  for i := 0 to parser.Count - 1 do
+  begin
+    chunkName := parser.Key[i];
+    entry := parser.Item[i];
+    if entry.Typ <> EJSONType.OBJ then
+      Continue;
+
+    if (not entry.Has('x1', EJSONType.INT)) or
+       (not entry.Has('y1', EJSONType.INT)) or
+       (not entry.Has('x2', EJSONType.INT)) or
+       (not entry.Has('y2', EJSONType.INT)) then
+      Continue;
+
+    x1 := entry.Item['x1'].AsInt;
+    y1 := entry.Item['y1'].AsInt;
+    x2 := entry.Item['x2'].AsInt;
+    y2 := entry.Item['y2'].AsInt;
+
+    if InRange(point.X, Min(x1, x2), Max(x1, x2)) and
+       InRange(point.Y, Min(y1, y2), Max(y1, y2)) then
+      Exit(chunkName);
+  end;
+end;
+
+function GrabCoordinate(): TGrabResult;
+var
+  grabber: TGrabberBase;
+  point: TPoint;
+begin
+  Result := Default(TGrabResult);
+
+  grabber.MinimizeForm();
+  Sleep(Round(RandomMode(1200, 400, 2000)));
+
+  point := Map.Position();
+  Result.Success := True;
+  Result.Point := point;
+  Result.ChunkName := DetectChunk(point);
+
+  grabber.RestoreForm();
+end;
 
