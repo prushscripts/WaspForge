@@ -3,6 +3,9 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_AI_PLANNER_PANEL_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 
 type
   TAIPlannerPanel = record

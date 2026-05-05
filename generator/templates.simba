@@ -3,6 +3,9 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_TEMPLATES_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 {$IFNDEF WF_TYPES_INCLUDED}
   {$I ../core/types.simba}
 {$ENDIF}

@@ -3,6 +3,9 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_TYPES_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 
 type
   // Traffic light states for each action card

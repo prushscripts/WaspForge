@@ -3,6 +3,9 @@
   Part of the WaspForge script factory system.
 *)
 {$DEFINE WF_FORGE_FORM_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
 
 procedure TScriptForm.OnForgeStart(sender: TLazObject); override;
 begin
