@@ -14,41 +14,27 @@ end;
 
 procedure TScriptForm.InitForge();
 var
-  tab: TLazTabSheet;
-  contentPanel: TLazPanel;
-  leftPanel: TLazPanel;
+  tab:        TLazTabSheet;
+  leftPanel:  TLazPanel;
   rightPanel: TLazPanel;
-  bottomStrip: TLazPanel;
 begin
   Self.Setup('WaspForge');
-
   tab := Self.CreateTab('Script Builder');
 
-  bottomStrip := TLazPanel.CreateEx(tab);
-  bottomStrip.Align := ELazAlign.Bottom;
-  bottomStrip.Height := 80;
-  bottomStrip.Caption := '';
-  bottomStrip.BevelOuter := ELazPanelBevel.None;
-
-  contentPanel := TLazPanel.CreateEx(tab);
-  contentPanel.Align := ELazAlign.Client;
-  contentPanel.Caption := '';
-  contentPanel.BevelOuter := ELazPanelBevel.None;
-
-  leftPanel := TLazPanel.CreateEx(contentPanel);
+  // Left panel — fixed 320px wide
+  leftPanel := TLazPanel.CreateEx(tab, 0, 0, 320, 0);
   leftPanel.Align := ELazAlign.Left;
-  leftPanel.Width := 320;
-  leftPanel.Caption := '';
   leftPanel.BevelOuter := ELazPanelBevel.None;
 
-  rightPanel := TLazPanel.CreateEx(contentPanel);
+  // Right panel — fills remaining space
+  rightPanel := TLazPanel.CreateEx(tab);
   rightPanel.Align := ELazAlign.Client;
-  rightPanel.Caption := '';
   rightPanel.BevelOuter := ELazPanelBevel.None;
 
+  // Wire panels to each setup procedure
   ActionPanel.Setup(leftPanel);
   CodePanel.Setup(rightPanel);
-  AIPlannerPanel.Setup(bottomStrip);
+  AIPlannerPanel.Setup(rightPanel);
 
   Self.Run();
 end;

@@ -34,7 +34,7 @@ begin
   CodePanel.StatusLbl.Caption := 'Lines: ' + ToStr(code.SplitLines().Length);
 end;
 
-procedure TCodePanel.Setup(parent: TLazControl);
+procedure TCodePanel.Setup(parent: TLazPanel);
 begin
   CodePanel.Memo := TLazMemo.CreateEx(parent, '', '', 0, 0, 500, 500);
   CodePanel.Memo.ReadOnly := True;

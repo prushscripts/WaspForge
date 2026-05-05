@@ -21,7 +21,7 @@ begin
   WriteLn('AI Generate clicked: ' + AIPlannerPanel.Memo.Text);
 end;
 
-procedure TAIPlannerPanel.Setup(parent: TLazControl);
+procedure TAIPlannerPanel.Setup(parent: TLazPanel);
 begin
   AIPlannerPanel.Memo := TLazMemo.CreateEx(parent,
     'Describe your script (e.g. chop willows at Draynor, bank logs)...',

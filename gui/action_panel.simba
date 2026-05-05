@@ -158,7 +158,7 @@ begin
   ActionPanel.Cards[High(ActionPanel.Cards)] := card;
 end;
 
-procedure TActionPanel.Setup(parent: TLazControl);
+procedure TActionPanel.Setup(parent: TLazPanel);
 begin
   ActionPanel.ScriptNameEdit := TLazEdit.CreateEx(parent, 'Script name:', '', 8, 8, 200);
   ActionPanel.ScriptNameEdit.OnChange := @ActionPanel.EmitChanged;
