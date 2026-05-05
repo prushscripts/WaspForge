@@ -64,8 +64,8 @@ procedure TWaspForge.SyncProjectFromUI();
 begin
   WFProject.Name := WFActionPanel.ScriptNameEdit.Text;
   WFProject.Actions := WFActionPanel.GetActions();
-  WFProject.BreakInterval := StrToIntDef(WFActionPanel.BreakIntervalEdit.Text, 0);
-  WFProject.BreakLength := StrToIntDef(WFActionPanel.BreakLengthEdit.Text, 0);
+  WFProject.BreakInterval := StrToInt(WFActionPanel.BreakIntervalEdit.Text, 0);
+  WFProject.BreakLength := StrToInt(WFActionPanel.BreakLengthEdit.Text, 0);
   WFProject.SleepTime := WFActionPanel.SleepTimeEdit.Text;
 end;
 

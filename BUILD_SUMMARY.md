@@ -709,3 +709,50 @@ Implemented the requested GUI and entry-point files in strict order:
   - Overrode `OnStart` following `TScriptForm` pattern.
 - `WaspForge.simba`:
   - Replaced placeholder with full entry-point script including `{$I WaspLib/osrs.simba}`, WaspForge includes, and launcher (`Forge.Init();`).
+
+---
+
+## Source-verified conversion audit (permanent rule pass)
+
+Performed a one-pass audit across all `WaspForge/*.simba` files for:
+
+- `StrToIntDef`
+- `StrToFloatDef`
+- `TryStrToInt`
+- `TryStrToFloat`
+- `IntToStr`
+- `FloatToStr`
+- `BoolToStr`
+- `StrToBool`
+- `VarToStr`
+- `Format(`
+
+### WaspLib / Simba source verification used
+
+- `WaspLib/utils/forms/profile_form.simba` proves integer parsing with default is:
+  - `StrToInt(value, default)`
+  - Example lines include:
+    - `Result.MinPlayers := StrToInt(Self.MinPlayersEdit.Text, 0);`
+    - `Result.MaxPlayers := StrToInt(Self.MaxPlayersEdit.Text, 2000);`
+- `Simba/Tests/json.simba` proves JSON format method usage:
+  - `json.Format()` and `jsonArr.Item[0].Format()`
+- `Simba/Tests/RunTests/tester.simba` proves standalone `Format(...)` exists.
+
+### Findings and fixes in WaspForge
+
+- `gui/forge_form.simba`
+  - Found:
+    - `WFProject.BreakInterval := StrToIntDef(WFActionPanel.BreakIntervalEdit.Text, 0);`
+    - `WFProject.BreakLength := StrToIntDef(WFActionPanel.BreakLengthEdit.Text, 0);`
+  - Replaced with WaspLib-verified signature:
+    - `StrToInt(..., 0)` for both lines.
+
+### Remaining matches from audit list
+
+- No remaining matches for:
+  - `StrToIntDef`, `StrToFloatDef`, `TryStrToInt`, `TryStrToFloat`,
+    `IntToStr`, `FloatToStr`, `BoolToStr`, `StrToBool`, `VarToStr`.
+- Two `Format(` matches remain and are intentionally kept as method calls:
+  - `core/coord_library.simba` -> `json.Format(...)`
+  - `core/project_file.simba` -> `root.Format(...)`
+  - This method usage is verified by `Simba/Tests/json.simba`.
