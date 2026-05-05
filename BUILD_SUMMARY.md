@@ -818,3 +818,32 @@ Root cause of persistent handler mismatch was the owner type used for forge hand
 ### Verification pass
 
 - Re-ran full codebase search for `:= @` assignments and matched each target to a `... (sender: TLazObject)`-compatible method signature.
+
+---
+
+## Helper-record rewrite (WaspLib handler pattern)
+
+Reworked the GUI wiring to follow the same helper-record pattern used by:
+
+- `WaspLib/osrs/interfaces/handlers/gear_form.simba`
+- `WaspLib/osrs/interfaces/handlers/inventory_form.simba`
+
+### Changes
+
+- `gui/forge_form.simba`
+  - Replaced form-method wiring with a dedicated plain helper record:
+    - `TWaspForge = record`
+  - Moved all forge event handlers onto `TWaspForge` methods with `sender: TLazObject` callback signatures.
+  - Added `TWaspForge.Setup(form: TScriptForm)` to wire controls/events onto the passed `TScriptForm`.
+  - Removed `TScriptForm` method ownership for forge-specific handlers.
+
+- `WaspForge.simba`
+  - Updated entry pattern to instantiate:
+    - `Forge: TWaspForge`
+    - `ForgeForm: TScriptForm`
+  - `TScriptForm.Init()` now does:
+    - `Self.Setup('WaspForge');`
+    - `Forge.Setup(Self);`
+    - `Self.Run();`
+
+This aligns WaspForge event wiring with the helper-record method-pointer pattern shown in WaspLib form helpers.

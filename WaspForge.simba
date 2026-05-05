@@ -15,9 +15,22 @@
 {$I gui/forge_form.simba}
 
 var
-  Forge: TScriptForm;
+  Forge: TWaspForge;
+  ForgeForm: TScriptForm;
+
+procedure TScriptForm.OnStart(sender: TLazObject); override;
+begin
+  inherited();
+end;
+
+procedure TScriptForm.Init();
+begin
+  Self.Setup('WaspForge');
+  Forge.Setup(Self);
+  Self.Run();
+end;
 
 begin
-  Forge.Init();
+  ForgeForm.Init();
 end.
 
