@@ -120,11 +120,10 @@ function TActionCard.GetAction(): TForgeAction;
 var
   i: Integer;
 begin
+  Result := Self.Action;
   for i := 0 to High(Self.Action.Inputs) do
     if i <= High(Self.InputEdits) then
       Result.Inputs[i].Value := Self.InputEdits[i].Text;
-
-  Result := Self.Action;
   Result.TrafficLight := Self.Validate();
 end;
 

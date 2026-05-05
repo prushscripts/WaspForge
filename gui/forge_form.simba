@@ -55,18 +55,22 @@ const
   WF_CHUNK_BOUNDS_JSON: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'chunk_bounds.json';
   WF_DEFAULT_PROJECT: String = {$MACRO DIR} + '..' + PATH_SEP + 'data' + PATH_SEP + 'last_project.wfproj';
 
-procedure TWaspForge.SyncProjectFromUI();
+function WFHasChunk(chunks: TStringArray; chunkName: String): Boolean;
 var
-  i: Integer;
+  chunk: String;
+begin
+  for chunk in chunks do
+    if chunk = chunkName then
+      Exit(True);
+end;
+
+procedure TWaspForge.SyncProjectFromUI();
 begin
   Self.Project.Name := Self.ActionPanel.ScriptNameEdit.Text;
   Self.Project.Actions := Self.ActionPanel.GetActions();
   Self.Project.BreakInterval := StrToIntDef(Self.ActionPanel.BreakIntervalEdit.Text, 0);
   Self.Project.BreakLength := StrToIntDef(Self.ActionPanel.BreakLengthEdit.Text, 0);
   Self.Project.SleepTime := Self.ActionPanel.SleepTimeEdit.Text;
-  Self.Project.MapChunks := [];
-  for i := 0 to Self.ChunkList.Items.Count - 1 do
-    Self.Project.MapChunks += Self.ChunkList.Items[i];
 end;
 
 procedure TWaspForge.UpdateCodePreview();
@@ -124,12 +128,9 @@ var
 begin
   if Self.ChunkList.ItemIndex < 0 then Exit;
   value := Self.ChunkList.Items[Self.ChunkList.ItemIndex];
-  if Self.ChunkList.Items.Search(value) >= 0 then
-  begin
-    Self.UpdateCodePreview();
-    Exit;
-  end;
-  Self.ChunkList.Items.Add(value);
+  if not WFHasChunk(Self.Project.MapChunks, value) then
+    Self.Project.MapChunks += value;
+  WriteLn('Added map chunk: ' + value);
   Self.UpdateCodePreview();
 end;
 
