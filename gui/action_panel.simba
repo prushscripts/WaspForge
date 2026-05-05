@@ -163,7 +163,7 @@ begin
 
   panel := TLazPanel.CreateEx(parent);
   panel.SetBounds(2, cardTop, 278, 86);
-  panel.BevelOuter := ELazPanelBevel.Single;
+  panel.BevelOuter := ELazPanelBevel.Lowered;
   card.Panel := panel;
 
   // Traffic light - colored square
