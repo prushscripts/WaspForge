@@ -15,7 +15,7 @@
 {$I gui/forge_form.simba}
 
 var
-  Forge: TWaspForge;
+  Forge: TScriptForm;
 
 begin
   Forge.Init();

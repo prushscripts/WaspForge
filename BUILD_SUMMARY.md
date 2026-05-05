@@ -797,3 +797,24 @@ No event assignment targets a `TObject` or parameterless handler.
   - Renamed unused event sender parameters to `_sender` in:
     - `OnCopyClick`
     - `OnSaveClick`
+
+---
+
+## Follow-up event pointer fix (complete `:= @` pass)
+
+Root cause of persistent handler mismatch was the owner type used for forge handlers.
+
+- Previous implementation attached GUI handlers as methods on `TWaspForge` (type alias path).
+- Updated to use `TScriptForm` methods directly (same pattern as `WaspLib/examples/script_template.simba`), so all assigned handlers are object methods with explicit `sender: TLazObject`.
+
+### Structural fix
+
+- `gui/forge_form.simba`
+  - Replaced all `procedure TWaspForge...` handlers/methods with `procedure TScriptForm...`
+  - Kept all event callback signatures as `(_sender: TLazObject)` (or `sender: TLazObject` where used)
+- `WaspForge.simba`
+  - Changed launcher variable type from `TWaspForge` to `TScriptForm`
+
+### Verification pass
+
+- Re-ran full codebase search for `:= @` assignments and matched each target to a `... (sender: TLazObject)`-compatible method signature.
