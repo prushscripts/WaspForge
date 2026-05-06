@@ -1,24 +1,57 @@
 (*
-  WaspForge — AI-powered script factory for WaspScripts 2.0
-  Run this file in Simba to open the WaspForge GUI.
+  WaspForge web launcher.
+  Opens the browser UI and starts the filesystem bridge loop.
 *)
 {$I WaspLib/osrs.simba}
 
-{$I WaspForge/core/types.simba}
-{$I WaspForge/core/actions_catalog.simba}
-{$I WaspForge/core/coord_library.simba}
-{$I WaspForge/core/code_generator.simba}
-{$I WaspForge/core/project_file.simba}
-{$I WaspForge/gui/theme.simba}
-{$I WaspForge/gui/action_panel.simba}
-{$I WaspForge/gui/code_panel.simba}
-{$I WaspForge/gui/ai_planner_panel.simba}
-{$I WaspForge/gui/forge_form.simba}
+{$I WaspForge/grabbers/bridge.simba}
 
 var
-  ForgeForm: TScriptForm;
+  LauncherForm: TScriptForm;
+  OpenButton: TLazButton;
+  ShouldRunBridge: Boolean = False;
+
+const
+  WF_WEB_INDEX_PATH: String =
+    {$MACRO DIR} + 'web' + PATH_SEP + 'index.html';
+
+function WFPathToFileURL(path: String): String;
+begin
+  Result := 'file:///' + StringReplace(path, '\', '/', [rfReplaceAll]);
+end;
+
+procedure TScriptForm.OnOpenBuilder(sender: TLazObject);
+begin
+  if not FileExists(WF_WEB_INDEX_PATH) then
+  begin
+    WriteLn('WaspForge: missing web UI file: ' + WF_WEB_INDEX_PATH);
+    Exit;
+  end;
+
+  FormUtils.OpenURL(WFPathToFileURL(WF_WEB_INDEX_PATH));
+  ShouldRunBridge := True;
+  Self.Form.Close();
+end;
+
+procedure TScriptForm.InitLauncher();
+var
+  tab: TLazTabSheet;
+begin
+  Self.Setup('WaspForge');
+
+  tab := Self.CreateTab('Launcher');
+  OpenButton := TLazButton.CreateEx(tab, 'Open Script Builder', '', 20, 20, 180, 32);
+  OpenButton.OnClick := @Self.OnOpenBuilder;
+
+  Self.Run();
+end;
 
 begin
-  ForgeForm.InitForge();
-end.
+  LauncherForm.InitLauncher();
 
+  if ShouldRunBridge then
+  begin
+    WriteLn('WaspForge bridge running on file system');
+    WFBridgeRun();
+  end;
+end.

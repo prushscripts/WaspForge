@@ -1,0 +1,115 @@
+(*
+  WaspForge filesystem bridge.
+  Polls web/bridge/command.json, executes grab commands, writes result.json.
+*)
+{$DEFINE WF_BRIDGE_INCLUDED}
+{$IFNDEF WL_OSRS}
+  {$I WaspLib/osrs.simba}
+{$ENDIF}
+{$IFNDEF WF_GRAB_OBJECTS_INCLUDED}
+  {$I grab_objects.simba}
+{$ENDIF}
+{$IFNDEF WF_GRAB_NPCS_INCLUDED}
+  {$I grab_npcs.simba}
+{$ENDIF}
+
+const
+  WF_BRIDGE_DIR: String =
+    {$MACRO DIR} + '..' + PATH_SEP + 'web' + PATH_SEP + 'bridge';
+  WF_COMMAND_JSON: String = WF_BRIDGE_DIR + PATH_SEP + 'command.json';
+  WF_RESULT_JSON: String = WF_BRIDGE_DIR + PATH_SEP + 'result.json';
+
+procedure WFBridgeEnsureFiles();
+begin
+  if not DirExists(WF_BRIDGE_DIR) then
+    DirCreate(WF_BRIDGE_DIR);
+
+  if not FileExists(WF_COMMAND_JSON) then
+    FileWrite(WF_COMMAND_JSON, '{"command":""}');
+
+  if not FileExists(WF_RESULT_JSON) then
+    FileWrite(WF_RESULT_JSON, '{"status":"idle"}');
+end;
+
+function WFReadCommand(): String;
+var
+  parser: TJSONParser;
+  raw: String;
+begin
+  Result := '';
+  if not FileExists(WF_COMMAND_JSON) then
+    Exit;
+
+  raw := FileRead(WF_COMMAND_JSON).Trim();
+  if raw = '' then
+    Exit;
+
+  parser := new TJSONParser();
+  parser.Parse(raw);
+  if (parser.Typ = EJSONType.OBJ) and parser.Has('command', EJSONType.STR) then
+    Exit(LowerCase(parser.Item['command'].AsString.Trim()));
+end;
+
+procedure WFClearCommand();
+begin
+  FileWrite(WF_COMMAND_JSON, '{"command":""}');
+end;
+
+procedure WFWriteResult(status, resultType, payload: String);
+var
+  json: TJSONObject;
+begin
+  json := new TJSONObject();
+  json.AddString('status', status);
+  json.AddString('type', resultType);
+  json.AddString('payload', payload);
+  FileWrite(WF_RESULT_JSON, json.Format([EJSONFormatOption.NO_WHITESPACE]));
+end;
+
+procedure WFHandleGrabCoords();
+var
+  p: TPoint;
+  pointJson: TJSONObject;
+begin
+  p := Map.Position();
+  pointJson := new TJSONObject();
+  pointJson.AddInt('x', p.X);
+  pointJson.AddInt('y', p.Y);
+  WFWriteResult('ok', 'grab_coords', pointJson.Format([EJSONFormatOption.NO_WHITESPACE]));
+end;
+
+procedure WFHandleGrabObjects();
+begin
+  WFWriteResult('ok', 'grab_objects', GrabObjectsJSON());
+end;
+
+procedure WFHandleGrabNPCs();
+begin
+  WFWriteResult('ok', 'grab_npcs', GrabNPCsJSON());
+end;
+
+procedure WFBridgeRun();
+var
+  command: String;
+begin
+  WFBridgeEnsureFiles();
+
+  repeat
+    command := WFReadCommand();
+    if command <> '' then
+    begin
+      case command of
+        'grab_coords': WFHandleGrabCoords();
+        'grab_objects': WFHandleGrabObjects();
+        'grab_npcs': WFHandleGrabNPCs();
+      else
+        WFWriteResult('error', command, 'unknown_command');
+      end;
+
+      WFClearCommand();
+    end;
+
+    Sleep(500);
+  until False;
+end;
+

@@ -7,3 +7,9 @@
   {$I ../core/types.simba}
 {$ENDIF}
 
+function GrabObjectsJSON(): String;
+begin
+  // Placeholder bridge payload until full object scanner is wired to web UI.
+  Result := '[]';
+end;
+

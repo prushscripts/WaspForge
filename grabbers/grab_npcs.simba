@@ -7,3 +7,9 @@
   {$I ../core/types.simba}
 {$ENDIF}
 
+function GrabNPCsJSON(): String;
+begin
+  // Placeholder bridge payload until full NPC scanner is wired to web UI.
+  Result := '[]';
+end;
+
