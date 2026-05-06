@@ -17,6 +17,10 @@ const
 
 function WFPathToFileURL(path: String): String;
 begin
+  // In some Simba launch contexts {$MACRO DIR} can resolve with a leading '*'.
+  if (Length(path) > 0) and (path[1] = '*') then
+    path.DeleteIndex(1);
+
   Result := 'file:///' + StringReplace(path, '\', '/', [rfReplaceAll]);
 end;
 
@@ -38,6 +42,12 @@ var
   tab: TLazTabSheet;
 begin
   Self.Setup('WaspForge');
+  Self.Form.Width := 400;
+  Self.Form.Height := 300;
+  Self.Form.Constraints.MaxWidth := 400;
+  Self.Form.Constraints.MinWidth := 400;
+  Self.Form.Constraints.MaxHeight := 300;
+  Self.Form.Constraints.MinHeight := 300;
 
   tab := Self.CreateTab('Launcher');
   OpenButton := TLazButton.CreateEx(tab, 'Open Script Builder', '', 20, 20, 180, 32);
