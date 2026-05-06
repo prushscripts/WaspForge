@@ -28,7 +28,7 @@ begin
     Exit;
   end;
 
-  FormUtils.OpenURL(WFPathToFileURL(WF_WEB_INDEX_PATH));
+  URLOpenInBrowser(WFPathToFileURL(WF_WEB_INDEX_PATH));
   ShouldRunBridge := True;
   Self.Form.Close();
 end;
