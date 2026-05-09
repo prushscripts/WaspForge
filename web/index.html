@@ -589,6 +589,193 @@ function ObjCard(props) {
   );
 }
 
+// ─── MAP PLANNER VIEW ─────────────────────────────────────────────────────────
+var TYPE_COLORS = {
+  tree:'#3d9e42', bank:'#e8a020', npc:'#4a90d9',
+  object:'#9b59b6', chest:'#e74c3c'
+};
+
+function getObjType(name) {
+  var n = (name||'').toLowerCase();
+  if (n.indexOf('tree')>=0||n.indexOf('log')>=0) return 'tree';
+  if (n.indexOf('bank')>=0||n.indexOf('deposit')>=0) return 'bank';
+  if (n.indexOf('chest')>=0||n.indexOf('reward')>=0) return 'chest';
+  if (n.indexOf('npc')>=0||n.indexOf('man')>=0||n.indexOf('woman')>=0) return 'npc';
+  return 'object';
+}
+
+function osrsToLL(map, x, y) {
+  return map.unproject([x * 4, (12800 - y) * 4], 4);
+}
+
+function makeMarkerEl(color) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;width:20px;height:20px;';
+  var ring = document.createElement('div');
+  ring.style.cssText = 'border-radius:50%;position:absolute;top:50%;left:50%;width:20px;height:20px;background:'+color+'44;transform:translate(-50%,-50%);animation:wfPulse 1.4s ease-out infinite;animation-play-state:paused;pointer-events:none;';
+  var dot = document.createElement('div');
+  dot.style.cssText = 'width:16px;height:16px;border-radius:50%;background:'+color+';border:2.5px solid rgba(255,255,255,0.9);position:absolute;top:2px;left:2px;transition:all .18s;cursor:pointer;';
+  wrap.appendChild(ring);
+  wrap.appendChild(dot);
+  return {wrap:wrap, dot:dot, ring:ring};
+}
+
+function MapPlannerView(props) {
+  var objects = props.objects || [];
+  var onAdd = props.onAdd;
+
+  var selState = useState(new Set()); var selected = selState[0]; var setSelected = selState[1];
+  var hovState = useState(null); var hovered = hovState[0]; var setHovered = hovState[1];
+  var tipState = useState('Scroll to zoom · drag to pan'); var tip = tipState[0]; var setTip = tipState[1];
+  var mapRef = React.useRef(null);
+  var leafRef = React.useRef(null);
+  var mRefs = React.useRef({});
+
+  useEffect(function() {
+    if (!window.L || !mapRef.current) return;
+    if (leafRef.current) { leafRef.current.remove(); leafRef.current = null; mRefs.current = {}; }
+    if (!objects.length) return;
+
+    var map = window.L.map(mapRef.current, {
+      crs: window.L.CRS.Simple, minZoom:1, maxZoom:6,
+      zoomControl:false, attributionControl:false
+    });
+    window.L.tileLayer('https://maps.runescape.com/osrs/1/map/{z}/{x}/{y}.png',
+      {tileSize:256, minZoom:1, maxZoom:6, noWrap:true}).addTo(map);
+    leafRef.current = map;
+
+    var cx = objects[0].coords[0][0];
+    var cy = objects[0].coords[0][1];
+    map.setView(osrsToLL(map, cx, cy - 400), 2);
+    map.flyTo(osrsToLL(map, cx, cy), 4, {duration:1.6, easeLinearity:0.3});
+
+    objects.forEach(function(obj) {
+      var color = TYPE_COLORS[getObjType(obj.name)] || '#888';
+      var coord = obj.coords[0];
+      var els = makeMarkerEl(color);
+      var icon = window.L.divIcon({html:els.wrap, className:'', iconSize:[20,20], iconAnchor:[10,10]});
+      var m = window.L.marker(osrsToLL(map, coord[0], coord[1]), {icon:icon, zIndexOffset:200}).addTo(map);
+      m.on('click', function(e) {
+        var multi = e.originalEvent.ctrlKey || e.originalEvent.metaKey;
+        setSelected(function(prev) {
+          var next = multi ? new Set(prev) : new Set();
+          if (prev.has(obj.id) && multi) next.delete(obj.id); else next.add(obj.id);
+          return next;
+        });
+      });
+      m.on('mouseover', function() {
+        setHovered(obj.id);
+        setTip(obj.name + ' · ID ' + obj.id + ' · [' + coord.join(', ') + ']');
+      });
+      m.on('mouseout', function() { setHovered(null); setTip('Scroll to zoom · drag to pan'); });
+      mRefs.current[obj.id] = {dot:els.dot, ring:els.ring, color:color};
+    });
+
+    return function() {
+      mRefs.current = {};
+      if (leafRef.current) { leafRef.current.remove(); leafRef.current = null; }
+    };
+  }, [objects]);
+
+  useEffect(function() {
+    objects.forEach(function(obj) {
+      var ref = mRefs.current[obj.id];
+      if (!ref) return;
+      var isSel = selected.has(obj.id);
+      var isHov = hovered === obj.id;
+      var active = isSel || isHov;
+      ref.dot.style.width  = active ? '19px' : '16px';
+      ref.dot.style.height = active ? '19px' : '16px';
+      ref.dot.style.top    = active ? '0.5px' : '2px';
+      ref.dot.style.left   = active ? '0.5px' : '2px';
+      ref.dot.style.border = isSel ? '3px solid #fff' : '2.5px solid rgba(255,255,255,0.85)';
+      ref.dot.style.boxShadow = isSel ? '0 0 0 4px '+ref.color+'99,0 0 18px '+ref.color+'88'
+        : isHov ? '0 0 0 3px '+ref.color+'66' : 'none';
+      ref.ring.style.animationPlayState = active ? 'running' : 'paused';
+      ref.ring.style.opacity = active ? '1' : '0';
+    });
+  }, [selected, hovered, objects]);
+
+  var groups = {};
+  objects.forEach(function(o) {
+    var t = getObjType(o.name);
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(o);
+  });
+
+  var selObjs = objects.filter(function(o) { return selected.has(o.id); });
+
+  if (!objects.length) return null;
+
+  return React.createElement('div', {style:{display:'flex',height:420,border:'1px solid '+C.border,borderRadius:8,overflow:'hidden',marginTop:10}},
+    React.createElement('style', null, '@keyframes wfPulse{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}}.leaflet-container{background:#1a2633!important}'),
+
+    // Sidebar
+    React.createElement('div', {style:{width:220,flexShrink:0,borderRight:'1px solid '+C.border,display:'flex',flexDirection:'column',background:C.bg1,overflow:'hidden'}},
+      React.createElement('div', {style:{padding:'8px 10px',borderBottom:'1px solid '+C.border}},
+        React.createElement('div', {style:{fontSize:11,fontWeight:700,color:C.t0,marginBottom:1}}, 'Objects on map'),
+        React.createElement('div', {style:{fontSize:9,color:C.t3}}, 'hover · click · ctrl+click')
+      ),
+      React.createElement('div', {style:{flex:1,overflowY:'auto',padding:6}},
+        Object.keys(groups).map(function(type) {
+          var color = TYPE_COLORS[type] || '#888';
+          return React.createElement('div', {key:type, style:{marginBottom:6}},
+            React.createElement('div', {style:{display:'flex',alignItems:'center',gap:4,fontSize:9,color:C.t3,textTransform:'uppercase',letterSpacing:1,padding:'2px 6px 4px'}},
+              React.createElement('span', {style:{width:6,height:6,borderRadius:'50%',background:color,display:'inline-block'}}),
+              type + 's'
+            ),
+            groups[type].map(function(obj, idx) {
+              var isSel = selected.has(obj.id);
+              var isHov = hovered === obj.id;
+              var coord = obj.coords[0];
+              return React.createElement('div', {
+                key:obj.id,
+                style:{display:'flex',alignItems:'center',gap:6,padding:'5px 6px',borderRadius:4,cursor:'pointer',userSelect:'none',border:isSel?'1px solid '+color+'55':'1px solid transparent',background:isSel?color+'18':isHov?C.bg3:'transparent'},
+                onMouseEnter:function(){setHovered(obj.id);},
+                onMouseLeave:function(){setHovered(null);},
+                onClick:function(e){
+                  var multi = e.ctrlKey||e.metaKey;
+                  setSelected(function(prev){
+                    var next = multi ? new Set(prev) : new Set();
+                    if(prev.has(obj.id)&&multi) next.delete(obj.id); else next.add(obj.id);
+                    return next;
+                  });
+                }
+              },
+                React.createElement('span', {style:{width:8,height:8,borderRadius:'50%',background:color,flexShrink:0}}),
+                React.createElement('div', {style:{flex:1,minWidth:0}},
+                  React.createElement('div', {style:{fontSize:10,color:C.t0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, obj.name+' #'+(idx+1)),
+                  React.createElement('div', {style:{fontSize:9,color:C.t3,fontFamily:'monospace'}}, '['+coord.join(', ')+']')
+                ),
+                isSel ? React.createElement('span', {style:{fontSize:9,color:color}}, '✓') : null
+              );
+            })
+          );
+        })
+      ),
+      React.createElement('div', {style:{padding:'8px 10px',borderTop:'1px solid '+C.border}},
+        selObjs.length > 0 ? React.createElement('div', {style:{fontSize:9,color:C.t3,marginBottom:5}}, selObjs.length+' selected') : null,
+        React.createElement('button', {
+          disabled: selObjs.length === 0,
+          onClick: function() { if(onAdd) onAdd(selObjs); },
+          style:{width:'100%',padding:'7px',fontSize:10,fontWeight:700,borderRadius:4,background:selObjs.length>0?C.green:'#222',color:selObjs.length>0?'#000':C.t3,border:'none',cursor:selObjs.length>0?'pointer':'default',fontFamily:'inherit',letterSpacing:1}
+        }, 'ADD TO SCRIPT →')
+      )
+    ),
+
+    // Map
+    React.createElement('div', {style:{flex:1,position:'relative',background:'#1a2633'}},
+      React.createElement('div', {ref:mapRef, style:{position:'absolute',inset:0}}),
+      React.createElement('div', {style:{position:'absolute',top:8,right:8,zIndex:999,display:'flex',flexDirection:'column',gap:3}},
+        React.createElement('button', {onClick:function(){leafRef.current&&leafRef.current.zoomIn();},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}, '+'),
+        React.createElement('button', {onClick:function(){leafRef.current&&leafRef.current.zoomOut();},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}, '−'),
+        React.createElement('button', {onClick:function(){if(leafRef.current&&objects.length){var c=objects[0].coords[0];leafRef.current.flyTo(osrsToLL(leafRef.current,c[0],c[1]),4,{duration:.8});}},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:11,cursor:'pointer',marginTop:2,fontFamily:'inherit'}}, '⌂')
+      ),
+      React.createElement('div', {style:{position:'absolute',bottom:8,left:'50%',transform:'translateX(-50%)',background:'rgba(10,18,26,.82)',color:'#fff',fontSize:10,padding:'4px 10px',borderRadius:20,pointerEvents:'none',whiteSpace:'nowrap',zIndex:998}}, tip)
+    )
+  );
+}
+
 // ─── PLANNER TAB ─────────────────────────────────────────────────────────────
 function PlannerTab(props) {
   var onAddAll = props.onAddAll;
@@ -674,6 +861,31 @@ function PlannerTab(props) {
         lbl('OBJECTS FOUND IN DATABASE'),
         parsed.objects.map(function(o, i) { return React.createElement(ObjCard, {key:i, obj:o}); })
       ) : null,
+      React.createElement(MapPlannerView, {
+        objects: parsed && parsed.objects ? parsed.objects.map(function(o, i) {
+          return {
+            id: o.id + '_' + i,
+            name: o.name,
+            gameId: o.id,
+            coords: o.coords,
+            actions: o.actions,
+            chunk: o.chunk
+          };
+        }) : [],
+        onAdd: function(selectedObjs) {
+          var items = selectedObjs.map(function(o) {
+            return {
+              id: 'INTERACT_OBJECT',
+              label: o.name,
+              coord: o.coords[0],
+              objectName: o.name,
+              objectId: o.gameId,
+              chunk: o.chunk
+            };
+          });
+          onAddAll(items);
+        }
+      }),
       parsed.actions.length > 0 ? React.createElement('div', null,
         lbl('SUGGESTED ACTIONS'),
         React.createElement('div', {style:{display:'flex',flexWrap:'wrap',gap:4}},
