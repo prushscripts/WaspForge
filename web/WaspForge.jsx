@@ -577,6 +577,199 @@ return (
 );
 }
 
+// ─── MAP PLANNER ──────────────────────────────────────────────────────────────
+const TYPE_COLORS_MAP = {
+  tree: "#3d9e42", bank: "#e8a020", npc: "#4a90d9",
+  object: "#9b59b6", chest: "#e74c3c", default: "#888888"
+};
+
+function osrsToLL(map, x, y) {
+  return map.unproject([x * 4, (12800 - y) * 4], 4);
+}
+
+function makePlannerMarkerEl(color) {
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative;width:20px;height:20px;";
+  const ring = document.createElement("div");
+  ring.style.cssText = `border-radius:50%;position:absolute;top:50%;left:50%;width:20px;height:20px;background:${color}44;transform:translate(-50%,-50%);animation:plannerPulse 1.4s ease-out infinite;animation-play-state:paused;`;
+  const dot = document.createElement("div");
+  dot.style.cssText = `width:16px;height:16px;border-radius:50%;background:${color};border:2.5px solid rgba(255,255,255,0.9);position:absolute;top:2px;left:2px;transition:all .18s;cursor:pointer;`;
+  wrap.appendChild(ring);
+  wrap.appendChild(dot);
+  return { wrap, dot, ring };
+}
+
+function MapPlannerTab({ objects, onAddToScript }) {
+  const mapRef = useRef(null);
+  const leafletMap = useRef(null);
+  const markerRefs = useRef({});
+  const [selected, setSelected] = useState(new Set());
+  const [hovered, setHovered] = useState(null);
+  const [tooltip, setTooltip] = useState("Scroll to zoom · drag to pan");
+
+  useEffect(() => {
+    if (leafletMap.current || !window.L) return;
+    const map = window.L.map(mapRef.current, {
+      crs: window.L.CRS.Simple, minZoom: 1, maxZoom: 6,
+      zoomControl: false, attributionControl: false
+    });
+    window.L.tileLayer(
+      "https://raw.githubusercontent.com/Explv/osrs_map_tiles/master/{z}/{x}/{y}.png",
+      { tileSize: 256, minZoom: 1, maxZoom: 6, noWrap: true }
+    ).addTo(map);
+    leafletMap.current = map;
+
+    const cx = objects.length > 0 ? objects[0].coords[0] : 7132;
+    const cy = objects.length > 0 ? objects[0].coords[1] : 36662;
+    map.setView(osrsToLL(map, cx, cy - 400), 2);
+    map.flyTo(osrsToLL(map, cx, cy), 4, { duration: 1.6, easeLinearity: 0.3 });
+
+    objects.forEach(obj => {
+      const color = obj.color || TYPE_COLORS_MAP[obj.type] || TYPE_COLORS_MAP.default;
+      const { wrap, dot, ring } = makePlannerMarkerEl(color);
+      const icon = window.L.divIcon({ html: wrap, className: "", iconSize: [20,20], iconAnchor: [10,10] });
+      const m = window.L.marker(osrsToLL(map, obj.coords[0], obj.coords[1]), { icon, zIndexOffset: 200 }).addTo(map);
+      m.on("click", e => {
+        const multi = e.originalEvent.ctrlKey || e.originalEvent.metaKey;
+        setSelected(prev => {
+          const next = multi ? new Set(prev) : new Set();
+          if (prev.has(obj.id) && multi) next.delete(obj.id); else next.add(obj.id);
+          return next;
+        });
+      });
+      m.on("mouseover", () => { setHovered(obj.id); setTooltip(`${obj.name} · ID ${obj.gameId} · [${obj.coords[0]}, ${obj.coords[1]}]`); });
+      m.on("mouseout",  () => { setHovered(null); setTooltip("Scroll to zoom · drag to pan"); });
+      markerRefs.current[obj.id] = { dot, ring };
+    });
+
+    return () => { markerRefs.current = {}; map.remove(); leafletMap.current = null; };
+  }, [objects]);
+
+  useEffect(() => {
+    objects.forEach(obj => {
+      const ref = markerRefs.current[obj.id];
+      if (!ref) return;
+      const color = obj.color || TYPE_COLORS_MAP[obj.type] || TYPE_COLORS_MAP.default;
+      const isSel = selected.has(obj.id);
+      const isHov = hovered === obj.id;
+      const active = isSel || isHov;
+      ref.dot.style.width  = active ? "19px" : "16px";
+      ref.dot.style.height = active ? "19px" : "16px";
+      ref.dot.style.top    = active ? "0.5px" : "2px";
+      ref.dot.style.left   = active ? "0.5px" : "2px";
+      ref.dot.style.border = isSel ? "3px solid rgba(255,255,255,1)" : "2.5px solid rgba(255,255,255,0.85)";
+      ref.dot.style.boxShadow = isSel ? `0 0 0 4px ${color}99,0 0 18px ${color}88` : isHov ? `0 0 0 3px ${color}66` : "none";
+      ref.ring.style.animationPlayState = active ? "running" : "paused";
+      ref.ring.style.opacity = active ? "1" : "0";
+    });
+  }, [selected, hovered]);
+
+  const groups = [...new Set(objects.map(o => o.type))].map(type => ({
+    type, color: TYPE_COLORS_MAP[type] || TYPE_COLORS_MAP.default,
+    items: objects.filter(o => o.type === type)
+  }));
+
+  const selectedObjs = objects.filter(o => selected.has(o.id));
+  const selTypes = {};
+  selectedObjs.forEach(o => { selTypes[o.type] = (selTypes[o.type] || 0) + 1; });
+  const selSummary = Object.entries(selTypes).map(([k,v]) => `${v} ${k}${v>1?"s":""}`).join(", ");
+
+  return (
+    <div style={{ display:"flex", height:"100%", overflow:"hidden" }}>
+      <style>{`
+        @keyframes plannerPulse { 0%{transform:translate(-50%,-50%) scale(1);opacity:.7} 100%{transform:translate(-50%,-50%) scale(2.4);opacity:0} }
+        .leaflet-container { background: #1a2633 !important; }
+      `}</style>
+
+      {/* SIDEBAR */}
+      <div style={{ width:260, flexShrink:0, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", background:T.bg1, overflow:"hidden" }}>
+        <div style={{ padding:"10px 14px", borderBottom:`1px solid ${T.border}` }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.text0, marginBottom:2 }}>Detected objects</div>
+          <div style={{ fontSize:10, color:T.text2 }}>Hover to highlight · ctrl+click to multi-select</div>
+        </div>
+
+        <div style={{ flex:1, overflowY:"auto", padding:8 }}>
+          {groups.length === 0 && (
+            <div style={{ padding:20, textAlign:"center", color:T.text3, fontSize:12, lineHeight:1.7 }}>
+              Run the AI Planner to detect objects,<br/>or add them manually below.
+            </div>
+          )}
+          {groups.map(g => (
+            <div key={g.type} style={{ marginBottom:8 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:10, fontWeight:700, color:T.text2, textTransform:"uppercase", letterSpacing:".06em", padding:"4px 8px 6px" }}>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:g.color, display:"inline-block" }}/>
+                {g.type}s
+              </div>
+              {g.items.map((obj, idx) => {
+                const isSel = selected.has(obj.id);
+                const isHov = hovered === obj.id;
+                return (
+                  <div key={obj.id}
+                    style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 8px", borderRadius:6, cursor:"pointer", userSelect:"none", border: isSel ? `1px solid ${g.color}55` : "1px solid transparent", background: isSel ? `${g.color}18` : isHov ? T.bg3 : "transparent" }}
+                    onMouseEnter={() => setHovered(obj.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    onClick={e => {
+                      const multi = e.ctrlKey || e.metaKey;
+                      setSelected(prev => {
+                        const next = multi ? new Set(prev) : new Set();
+                        if (prev.has(obj.id) && multi) next.delete(obj.id); else next.add(obj.id);
+                        return next;
+                      });
+                    }}>
+                    <span style={{ width:10, height:10, borderRadius:"50%", background:g.color, flexShrink:0, boxShadow: isSel ? `0 0 0 3px ${g.color}44` : "none" }}/>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:12, fontWeight:500, color:T.text0 }}>
+                        {obj.name} <span style={{ fontSize:10, color:T.text3, fontWeight:400 }}>#{idx+1}</span>
+                      </div>
+                      <div style={{ fontSize:10, color:T.text2, fontFamily:"JetBrains Mono", marginTop:1 }}>
+                        [{obj.coords[0]}, {obj.coords[1]}] · {obj.gameId}
+                      </div>
+                    </div>
+                    <div style={{ width:15, height:15, borderRadius:3, border:`1px solid ${T.border}`, background: isSel ? T.accentGreen : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:9, color:"#000", fontWeight:700 }}>
+                      {isSel ? "✓" : ""}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding:"10px 12px", borderTop:`1px solid ${T.border}` }}>
+          {selectedObjs.length > 0 && (
+            <div style={{ fontSize:11, color:T.text2, marginBottom:7 }}>
+              {selectedObjs.length} selected — {selSummary}
+            </div>
+          )}
+          <button
+            disabled={selectedObjs.length === 0}
+            onClick={() => onAddToScript(selectedObjs)}
+            style={{ width:"100%", padding:"8px", fontSize:12, fontWeight:700, borderRadius:6,
+              background: selectedObjs.length > 0 ? T.accentGreen : T.bg3,
+              color: selectedObjs.length > 0 ? "#000" : T.text3,
+              border:"none", cursor: selectedObjs.length > 0 ? "pointer" : "default" }}>
+            Add to script build →
+          </button>
+        </div>
+      </div>
+
+      {/* MAP */}
+      <div style={{ flex:1, position:"relative", background:"#1a2633" }}>
+        <div ref={mapRef} style={{ position:"absolute", inset:0 }} />
+        <div style={{ position:"absolute", top:10, right:10, zIndex:999, display:"flex", flexDirection:"column", gap:4 }}>
+          <button onClick={() => leafletMap.current?.zoomIn()} style={{ width:28, height:28, borderRadius:6, background:T.bg2, border:`1px solid ${T.border}`, color:T.text0, fontSize:16, cursor:"pointer" }}>+</button>
+          <button onClick={() => leafletMap.current?.zoomOut()} style={{ width:28, height:28, borderRadius:6, background:T.bg2, border:`1px solid ${T.border}`, color:T.text0, fontSize:16, cursor:"pointer" }}>−</button>
+          <button onClick={() => { const cx = objects[0]?.coords[0]||7132; const cy = objects[0]?.coords[1]||36662; leafletMap.current?.flyTo(osrsToLL(leafletMap.current, cx, cy), 4, {duration:.8}); }}
+            style={{ width:28, height:28, borderRadius:6, background:T.bg2, border:`1px solid ${T.border}`, color:T.text0, fontSize:12, cursor:"pointer", marginTop:2 }}>⌂</button>
+        </div>
+        <div style={{ position:"absolute", bottom:10, left:"50%", transform:"translateX(-50%)", background:"rgba(10,18,26,.82)", color:"#fff", fontSize:11, padding:"5px 12px", borderRadius:20, pointerEvents:"none", whiteSpace:"nowrap", zIndex:998 }}>
+          {tooltip}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function WaspForge() {
 const [activeTab, setActiveTab] = useState(“builder”);
@@ -586,6 +779,7 @@ const [grabModal, setGrabModal] = useState(null);
 const [aiLoading, setAiLoading] = useState(false);
 const [aiResult, setAiResult] = useState(””);
 const [aiInput, setAiInput] = useState(””);
+const [plannerObjects, setPlannerObjects] = useState([]);
 const [consoleLogs, setConsoleLogs] = useState([
 { time: “00:00:00”, msg: “WaspForge initialized”, type: “success” },
 { time: “00:00:00”, msg: “Action catalog loaded — 20 actions available”, type: “info” },
@@ -707,7 +901,7 @@ Always start with relevant bank/setup actions and end with looping back to the s
 User description: “${aiInput}”
 
 Example output format:
-[{“id”:“WALK_TO”,“values”:{“destination”:“NEEDS_GRAB”,“min_dist”:“5”}},{“id”:“OPEN_BANK”,“values”:{}}]` }] }) }); const data = await resp.json(); const text = data.content?.[0]?.text || "[]"; setAiResult(text); try { const parsed = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(parsed)) { setProject(p => ({ ...p, actions: parsed })); addLog(`AI generated ${parsed.length} actions — fill in Grab fields`, “success”);
+[{“id”:“WALK_TO”,“values”:{“destination”:“NEEDS_GRAB”,“min_dist”:“5”}},{“id”:“OPEN_BANK”,“values”:{}}]` }] }) }); const data = await resp.json(); const text = data.content?.[0]?.text || "[]"; setAiResult(text); try { const parsed = JSON.parse(text.replace(/```json|```/g, "").trim()); if (Array.isArray(parsed)) { setProject(p => ({ ...p, actions: parsed })); setPlannerObjects(parsed.flatMap(a => a.mapObjects || [])); addLog(`AI generated ${parsed.length} actions — fill in Grab fields`, “success”);
 }
 } catch { addLog(“AI response received — review and apply manually”, “warn”); }
 } catch (e) {
@@ -732,6 +926,7 @@ const redCount = project.actions.length - greenCount;
 
 const tabs = [
 { id: “builder”, label: “Script Builder”, dot: T.accentBlue },
+{ id: “planner”, label: “Map Planner”, dot: T.accentGreen },
 { id: “settings”, label: “Settings”, dot: T.accentYellow },
 { id: “ai”, label: “AI Planner”, dot: T.accentPurple },
 { id: “console”, label: “Console”, dot: consoleLogs.some(l => l.type === “error”) ? T.red : T.accentGreen },
@@ -957,7 +1152,32 @@ return (
         </div>
       )}
 
-      {/* ── AI PLANNER TAB ── */}
+      {/* ── MAP PLANNER TAB ── */}
+      {activeTab === "planner" && (
+        <MapPlannerTab
+          objects={plannerObjects}
+          onAddToScript={(selectedObjs) => {
+            selectedObjs.forEach(obj => {
+              const existingInteract = project.actions.find(a => a.id === "INTERACT_OBJECT" && a.values?.object_name === obj.name);
+              if (!existingInteract) {
+                const newAction = {
+                  id: "INTERACT_OBJECT",
+                  values: {
+                    object_name: obj.name,
+                    action: obj.actions?.[0] || "Use",
+                    destination: `[${obj.coords[0]}, ${obj.coords[1]}]`
+                  }
+                };
+                setProject(p => ({ ...p, actions: [...p.actions, newAction] }));
+                addLog(`Added ${obj.name} [${obj.coords[0]}, ${obj.coords[1]}] to script`, "success");
+              }
+            });
+            setActiveTab("builder");
+          }}
+        />
+      )}
+
+{/* ── AI PLANNER TAB ── */}
       {activeTab === "ai" && (
         <div className="wf-ai-panel">
           <div className="wf-ai-header">
