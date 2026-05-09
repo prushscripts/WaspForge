@@ -604,14 +604,21 @@ function getObjType(name) {
   return 'object';
 }
 
-function osrsToLL(map, x, y) {
-  // WaspLib coords: 4 pixels per OSRS tile
-  // Jagex chunk = 64 OSRS tiles = 256 pixels in WaspLib
-  // Map tiles at zoom 0 are 1 chunk each
-  var tileX = Math.floor(x / 256);
-  var tileY = Math.floor((49152 - y) / 256);
-  return map.unproject([tileX * 256, tileY * 256], 0);
+function wasplibToLeafletLatLng(waspX, waspY) {
+  var chunkX = Math.round((waspX + 4096) / 4 / 64);
+  var chunkY = Math.round((50430 - waspY) / 4 / 64);
+  return window.L.latLng(chunkY, chunkX);
 }
+
+// Same Y transform / URL pattern as map.waspscripts.com/js/layers.js (L.TileLayer.Main.getTileUrl)
+var WaspScriptsMapTileLayer = window.L.TileLayer.extend({
+  getTileUrl: function(coords) {
+    return window.L.Util.template(this.options.tileUrlPattern, {
+      x: coords.x,
+      y: Math.abs(1 + coords.y)
+    });
+  }
+});
 
 function makeMarkerEl(color) {
   var wrap = document.createElement('div');
@@ -642,24 +649,30 @@ function MapPlannerView(props) {
     if (!objects.length) return;
 
     var map = window.L.map(mapRef.current, {
-      crs: window.L.CRS.Simple, minZoom:0, maxZoom:3,
+      crs: window.L.CRS.Simple, minZoom:2, maxZoom:2,
       zoomControl:false, attributionControl:false
     });
-    window.L.tileLayer('https://map.waspscripts.com/layers-osrs/map/0/0/{x}-{y}.png',
-      {tileSize:256, minZoom:0, maxZoom:3, noWrap:true, errorTileUrl:''}).addTo(map);
+    new WaspScriptsMapTileLayer('', {
+      tileUrlPattern: 'https://map.waspscripts.com/layers-osrs/map/2/0/{x}-{y}.png',
+      tileSize:256,
+      minZoom:2,
+      maxZoom:2,
+      noWrap:true,
+      errorTileUrl:''
+    }).addTo(map);
     leafRef.current = map;
 
     var cx = objects[0].coords[0][0];
     var cy = objects[0].coords[0][1];
-    map.setView(osrsToLL(map, cx, cy - 400), 0);
-    map.flyTo(osrsToLL(map, cx, cy), 0, {duration:1.6, easeLinearity:0.3});
+    map.setView(wasplibToLeafletLatLng(cx, cy - 400), 0);
+    map.flyTo(wasplibToLeafletLatLng(cx, cy), 0, {duration:1.6, easeLinearity:0.3});
 
     objects.forEach(function(obj) {
       var color = TYPE_COLORS[getObjType(obj.name)] || '#888';
       var coord = obj.coords[0];
       var els = makeMarkerEl(color);
       var icon = window.L.divIcon({html:els.wrap, className:'', iconSize:[20,20], iconAnchor:[10,10]});
-      var m = window.L.marker(osrsToLL(map, coord[0], coord[1]), {icon:icon, zIndexOffset:200}).addTo(map);
+      var m = window.L.marker(wasplibToLeafletLatLng(coord[0], coord[1]), {icon:icon, zIndexOffset:200}).addTo(map);
       m.on('click', function(e) {
         var multi = e.originalEvent.ctrlKey || e.originalEvent.metaKey;
         setSelected(function(prev) {
@@ -774,7 +787,7 @@ function MapPlannerView(props) {
       React.createElement('div', {style:{position:'absolute',top:8,right:8,zIndex:999,display:'flex',flexDirection:'column',gap:3}},
         React.createElement('button', {onClick:function(){leafRef.current&&leafRef.current.zoomIn();},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}, '+'),
         React.createElement('button', {onClick:function(){leafRef.current&&leafRef.current.zoomOut();},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}, '−'),
-        React.createElement('button', {onClick:function(){if(leafRef.current&&objects.length){var c=objects[0].coords[0];leafRef.current.flyTo(osrsToLL(leafRef.current,c[0],c[1]),0,{duration:.8});}},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:11,cursor:'pointer',marginTop:2,fontFamily:'inherit'}}, '⌂')
+        React.createElement('button', {onClick:function(){if(leafRef.current&&objects.length){var c=objects[0].coords[0];leafRef.current.flyTo(wasplibToLeafletLatLng(c[0],c[1]),0,{duration:.8});}},style:{width:26,height:26,borderRadius:4,background:C.bg2,border:'1px solid '+C.border,color:C.t0,fontSize:11,cursor:'pointer',marginTop:2,fontFamily:'inherit'}}, '⌂')
       ),
       React.createElement('div', {style:{position:'absolute',bottom:8,left:'50%',transform:'translateX(-50%)',background:'rgba(10,18,26,.82)',color:'#fff',fontSize:10,padding:'4px 10px',borderRadius:20,pointerEvents:'none',whiteSpace:'nowrap',zIndex:998}}, tip)
     )
